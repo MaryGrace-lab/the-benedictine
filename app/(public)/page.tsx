@@ -10,7 +10,8 @@ import {
   BookOpen, 
   ArrowRight, 
   Star, 
-  UserCheck 
+  UserCheck,
+  Bell 
 } from 'lucide-react';
 
 // 1. Data Definitions
@@ -24,7 +25,7 @@ const fadeUp = {
 };
 
 const stats = [
-  { icon: <Users />, value: '150+', label: 'Students' },
+  { icon: <Users />, value: '200+', label: 'Students' },
   { icon: <GraduationCap />, value: '90%', label: 'Pass Rate' },
   { icon: <UserCheck />, value: '25+', label: 'Expert Teachers' },
   { icon: <BookOpen />, value: '50+', label: 'Subjects' }
@@ -63,22 +64,43 @@ const testimonials = [
 
 export default function HomePage() {
   return (
-    <main className="flex-1">
-      {/* Hero - Adjusted min-height and padding for mobile responsiveness */}
+    <main className="flex-1 overflow-x-hidden">
+      {/* Dynamic Announcement Bar */}
+      <div className="bg-[#eab308] py-2.5 px-4 border-b border-black/5">
+        <div className="container mx-auto flex items-center justify-center gap-3 text-[#270f01]">
+          <motion.div
+            animate={{ scale: [1, 1.15, 1] }}
+            transition={{ repeat: Infinity, duration: 2 }}
+            className="shrink-0"
+          >
+            <Bell className="w-4 h-4" />
+          </motion.div>
+          
+          <p className="text-xs md:text-sm font-bold font-sans text-center leading-tight">
+            <span className="uppercase tracking-wider mr-2 bg-[#270f01] text-white px-1.5 py-0.5 rounded text-[9px] md:text-[10px]">Notice</span>
+            Resumption Date: Third Term begins Monday, April 27th, 2026.
+          </p>
+
+          <Link 
+            href="/news" 
+            className="hidden sm:flex items-center gap-1 text-[10px] md:text-xs font-black uppercase tracking-wider hover:underline ml-2"
+          >
+            Details <ArrowRight className="w-3 h-3" />
+          </Link>
+        </div>
+      </div>
+
+      {/* Hero Section */}
       <section className="relative min-h-screen md:min-h-[90vh] flex items-center overflow-hidden">
-        {/* 1. The Image Layer */}
         <div 
           className="absolute inset-0 bg-[url('/1.jpg')] bg-cover bg-center" 
           style={{ zIndex: 0 }}
         />
-        
-        {/* 2. The Brown Tint Layer */}
         <div 
           className="absolute inset-0 bg-[#241a16]/70 backdrop-brightness-[0.7]" 
           style={{ zIndex: 1 }}
         />
 
-        {/* 3. Content Layer - Added large bottom padding (pb-64) to prevent clashing with stats */}
         <div className="container mx-auto px-4 pt-32 pb-64 md:pt-20 md:pb-32 relative z-10">
           <motion.div initial="hidden" animate="visible" className="max-w-3xl">
             <motion.span variants={fadeUp} custom={0} className="inline-block px-4 py-1.5 rounded-full bg-primary/20 text-white text-sm font-semibold mb-6 border border-white/20 backdrop-blur-md">
@@ -113,7 +135,7 @@ export default function HomePage() {
           </motion.div>
         </div>
 
-        {/* Stats bar - Positioned at bottom with mobile grid fix */}
+        {/* Stats bar */}
         <div className="absolute bottom-0 left-0 w-full z-20">
           <div className="container mx-auto px-0 md:px-4">
             <div className="bg-[#1a1513] border-t border-white/10 rounded-t-2xl shadow-2xl overflow-hidden">
@@ -146,7 +168,7 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* Announcements */}
+      {/* Announcements Section */}
       <section className="py-16 bg-muted/50">
         <div className="container mx-auto px-4">
           <motion.div initial={{ opacity: 0 }} whileInView={{ opacity: 1 }} viewport={{ once: true }}>
@@ -207,8 +229,8 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* Testimonials - Fixed colors by using a solid background color fallback */}
-      <section className="py-16 bg-[#241a16]"> 
+      {/* Testimonials */}
+      <section className="py-16 bg-[#270f01]"> 
         <div className="container mx-auto px-4">
           <h2 className="text-3xl font-display font-bold text-white text-center mb-12">What People Say</h2>
           <div className="grid md:grid-cols-3 gap-6">
@@ -235,15 +257,21 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* CTA */}
+      {/* CTA Section */}
       <section className="py-16">
         <div className="container mx-auto px-4">
           <div className="bg-card rounded-2xl shadow-card border border-border p-8 md:p-12 text-center">
             <h2 className="text-3xl md:text-4xl font-display font-bold text-foreground mb-4">Ready to Join Our Community?</h2>
             <p className="text-muted-foreground max-w-xl mx-auto mb-8">Take the first step towards a transformative educational experience. Applications for 2026/2027 are now open.</p>
             <div className="flex flex-wrap justify-center gap-4">
-              <Link href="/admission"><Button variant="default" size="lg" className="bg-[#eab308] hover:bg-[#ca8a04] text-black font-bold">Start Application</Button></Link>
-              <Link href="/contact"><Button variant="outline" size="lg">Contact Us</Button></Link>
+              <Link href="/admission">
+                <Button variant="default" size="lg" className="bg-[#eab308] hover:bg-[#ca8a04] text-black font-bold">
+                  Start Application
+                </Button>
+              </Link>
+              <Link href="/contact">
+                <Button variant="outline" size="lg">Contact Us</Button>
+              </Link>
             </div>
           </div>
         </div>
