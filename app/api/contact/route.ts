@@ -1,86 +1,224 @@
+// app/api/contact/route.ts
 import { Resend } from "resend";
 import { NextResponse } from "next/server";
 import { z } from "zod";
+import { headers } from "next/headers";
+import { Ratelimit } from "@upstash/ratelimit";
+import { Redis } from "@upstash/redis";
+import { prisma } from "@/lib/prisma";
 
-// 1. Initialize Resend only
+// 1. Initialize Resend
 const resend = new Resend(process.env.RESEND_API_KEY);
 
-// 2. Validation Schema
-const ContactSchema = z.object({
-  name: z.string().trim().min(2, "Name is too short").max(50),
-  email: z.string().email("Invalid email address").toLowerCase(),
-  phone: z.string().min(10, "Phone number is too short"),
-  message: z.string().trim().min(10, "Message is too short").max(2000),
-  honeypot: z.string().optional(), // Invisible field to catch bots
+// 2. Initialize Upstash Rate Limiter
+const redis = Redis.fromEnv();
+const ratelimit = new Ratelimit({
+  redis,
+  limiter: Ratelimit.slidingWindow(3, "60 s"),
+  analytics: true,
 });
+
+// 3. Validation Schema
+const ContactSchema = z.object({
+  name: z.string().trim().min(2, "Name must be at least 2 characters").max(100),
+  email: z.string().email("Invalid email address").max(255),
+  phone: z.string().optional().default(""),
+  message: z.string().trim().min(10, "Message must be at least 10 characters").max(5000),
+  honeypot: z.string().max(0).optional(),
+});
+
+function sanitizeHtml(str: string): string {
+  return str
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
+}
 
 export async function POST(req: Request) {
   try {
-    // A. Parse the incoming request body
-    const body = await req.json();
-    
-    // B. Honeypot Logic: If this hidden field is filled, it's a bot. 
-    // We return a 200 "success" so the bot thinks it succeeded, but we do nothing.
-    if (body.honeypot) {
-      return NextResponse.json({ success: true, message: "Message sent!" }, { status: 200 });
+    // A. Get client IP for rate limiting
+    const headersList = await headers();
+    const forwardedFor = headersList.get("x-forwarded-for");
+    const clientIp = forwardedFor?.split(",")[0]?.trim() || "127.0.0.1";
+
+    // B. Rate Limiting (skip in development)
+    if (process.env.NODE_ENV === "production") {
+      const { success, limit, reset, remaining } = await ratelimit.limit(clientIp);
+      
+      if (!success) {
+        return NextResponse.json(
+          { error: "Too many requests. Please try again later." },
+          {
+            status: 429,
+            headers: {
+              "Retry-After": String(Math.ceil((reset - Date.now()) / 1000)),
+              "X-RateLimit-Limit": String(limit),
+              "X-RateLimit-Remaining": String(remaining),
+              "X-RateLimit-Reset": String(reset),
+            },
+          }
+        );
+      }
     }
 
-    // C. Validate the data against our schema
+    // C. Parse request body
+    const body = await req.json();
+
+    // D. Honeypot check (bot detection)
+    if (body.honeypot) {
+      console.log("🤖 Bot caught in honeypot");
+      return NextResponse.json({ success: true }, { status: 200 });
+    }
+
+    // E. Validate input
     const validation = ContactSchema.safeParse(body);
     if (!validation.success) {
-      return NextResponse.json({ error: validation.error.format() }, { status: 400 });
+      return NextResponse.json(
+        { 
+          error: "Validation failed", 
+          details: validation.error.flatten().fieldErrors 
+        },
+        { status: 400 }
+      );
     }
 
     const { name, email, phone, message } = validation.data;
+    
+    // F. Sanitize input
+    const safe = {
+      name: sanitizeHtml(name),
+      email: sanitizeHtml(email.toLowerCase()),
+      phone: sanitizeHtml(phone),
+      message: sanitizeHtml(message),
+    };
 
-    // D. Send Email using your verified domain
-    const { error } = await resend.emails.send({
+    // G. Check API key
+    if (!process.env.RESEND_API_KEY) {
+      console.error("❌ RESEND_API_KEY not configured");
+      return NextResponse.json({ error: "Email service not configured" }, { status: 500 });
+    }
+
+    // H. Save to database FIRST
+    try {
+      await prisma.contactMessage.create({
+        data: {
+          name: safe.name,
+          email: safe.email,
+          phone: safe.phone || null,
+          subject: `New inquiry from ${safe.name}`,
+          message: safe.message,
+          isRead: false,
+        },
+      });
+      console.log("✅ Contact saved to database");
+    } catch (dbError) {
+      console.error("❌ Database save failed:", dbError);
+      // Continue with email even if DB fails
+    }
+
+    // I. Send email notification
+    const { data, error } = await resend.emails.send({
       from: "The Benedictine Academy <info@mail.thebenedictineacademyportal.com>",
       to: "thebenedictineacademy@gmail.com",
-      reply_to: email,
-      subject: `Inquiry: ${name}`,
+      replyTo: safe.email,
+      subject: `[Contact Form] ${safe.name}`,
       html: `
-        <div style="background-color: #f4f4f4; padding: 40px 20px; font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;">
-          <div style="max-width: 600px; margin: 0 auto; background-color: #ffffff; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); overflow: hidden; border: 1px solid #e1e1e1;">
-            <div style="height: 6px; background-color: #d4af37;"></div>
-            <div style="padding: 30px 40px; border-bottom: 1px solid #eee;">
-              <h1 style="margin: 0; color: #270f01; font-size: 20px; font-weight: 700; letter-spacing: 0.5px; text-transform: uppercase;">
-                The Benedictine Academy
-              </h1>
-              <p style="margin: 4px 0 0; color: #666; font-size: 13px;">Official Website Inquiry</p>
+        <!DOCTYPE html>
+        <html>
+        <head>
+          <meta charset="utf-8">
+        </head>
+        <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333;">
+          <div style="max-width: 600px; margin: 0 auto; padding: 20px;">
+            <h2 style="color: #1a365d; border-bottom: 2px solid #e2e8f0; padding-bottom: 10px;">
+              New Contact Form Submission
+            </h2>
+            
+            <table style="width: 100%; border-collapse: collapse; margin: 20px 0;">
+              <tr>
+                <td style="padding: 8px; font-weight: bold; width: 100px;">Name:</td>
+                <td style="padding: 8px;">${safe.name}</td>
+              </tr>
+              <tr>
+                <td style="padding: 8px; font-weight: bold;">Email:</td>
+                <td style="padding: 8px;">
+                  <a href="mailto:${safe.email}" style="color: #2b6cb0;">${safe.email}</a>
+                </td>
+              </tr>
+              ${safe.phone ? `
+              <tr>
+                <td style="padding: 8px; font-weight: bold;">Phone:</td>
+                <td style="padding: 8px;">
+                  <a href="tel:${safe.phone}" style="color: #2b6cb0;">${safe.phone}</a>
+                </td>
+              </tr>
+              ` : ''}
+            </table>
+            
+            <div style="background-color: #f7fafc; padding: 15px; border-radius: 5px; margin-top: 20px;">
+              <h3 style="margin-top: 0; color: #2d3748;">Message:</h3>
+              <p style="white-space: pre-wrap;">${safe.message}</p>
             </div>
-            <div style="padding: 40px; color: #333; line-height: 1.8;">
-              <div style="margin-bottom: 30px; padding: 20px; background-color: #fcfcfc; border-left: 4px solid #d4af37;">
-                <table style="width: 100%; font-size: 14px; border-spacing: 0;">
-                  <tr><td style="color: #888; padding-bottom: 8px;">Sender:</td><td style="font-weight: 600; color: #270f01;">${name}</td></tr>
-                  <tr><td style="color: #888; padding-bottom: 8px;">Email:</td><td style="font-weight: 600; color: #270f01;">${email}</td></tr>
-                  <tr><td style="color: #888;">Phone:</td><td style="font-weight: 600; color: #270f01;">${phone}</td></tr>
-                </table>
-              </div>
-              <p style="font-weight: 700; font-size: 12px; color: #270f01; text-transform: uppercase; margin-bottom: 10px;">Message Content:</p>
-              <div style="font-size: 15px; color: #444; white-space: pre-wrap; border-top: 1px solid #eee; padding-top: 15px;">
-                ${message.replace(/\n/g, '<br>')}
-              </div>
-            </div>
-            <div style="padding: 20px; background-color: #270f01; text-align: center;">
-              <p style="margin: 0; color: #d4af37; font-size: 11px; font-weight: 600;">© ${new Date().getFullYear()} THE BENEDICTINE ACADEMY</p>
-            </div>
+            
+            <p style="margin-top: 20px; font-size: 12px; color: #718096;">
+              Sent from The Benedictine Academy contact form
+            </p>
           </div>
-        </div>
+        </body>
+        </html>
       `,
     });
 
-    // E. Handle Resend errors
     if (error) {
-      console.error("Resend Error:", error);
-      return NextResponse.json({ error: "Failed to send email" }, { status: 500 });
+      console.error("❌ Resend Error:", error);
+      return NextResponse.json(
+        { error: "Failed to send email notification" }, 
+        { status: 500 }
+      );
     }
 
-    // F. Success!
-    return NextResponse.json({ success: true }, { status: 200 });
+    console.log("✅ Email sent successfully:", data?.id);
+    return NextResponse.json(
+      { 
+        success: true, 
+        message: "Your message has been sent successfully!" 
+      }, 
+      { 
+        status: 200,
+        headers: {
+          'Access-Control-Allow-Origin': '*',
+          'Access-Control-Allow-Methods': 'POST, OPTIONS',
+          'Access-Control-Allow-Headers': 'Content-Type',
+        }
+      }
+    );
 
   } catch (err) {
-    console.error("Server Error:", err);
-    return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
+    console.error("❌ Server Error:", {
+      error: err instanceof Error ? err.message : 'Unknown error',
+      stack: err instanceof Error ? err.stack : undefined,
+    });
+    
+    return NextResponse.json(
+      { 
+        error: process.env.NODE_ENV === 'development' 
+          ? `Internal error: ${err instanceof Error ? err.message : 'Unknown'}` 
+          : "An unexpected error occurred. Please try again later." 
+      }, 
+      { status: 500 }
+    );
   }
+}
+
+// Handle OPTIONS for CORS
+export async function OPTIONS() {
+  return NextResponse.json({}, {
+    headers: {
+      'Access-Control-Allow-Origin': '*',
+      'Access-Control-Allow-Methods': 'POST, OPTIONS',
+      'Access-Control-Allow-Headers': 'Content-Type',
+    },
+  });
 }

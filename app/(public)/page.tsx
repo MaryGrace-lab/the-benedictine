@@ -90,8 +90,8 @@ export default function HomePage() {
         </div>
       </div>
 
-      {/* Hero Section */}
-      <section className="relative min-h-screen md:min-h-[90vh] flex items-center overflow-hidden">
+            {/* Hero Section */}
+      <section className="relative min-h-[calc(100vh-64px)] md:min-h-[calc(100vh-80px)] flex items-center overflow-hidden">
         <div 
           className="absolute inset-0 bg-[url('/1.jpg')] bg-cover bg-center" 
           style={{ zIndex: 0 }}
@@ -101,7 +101,7 @@ export default function HomePage() {
           style={{ zIndex: 1 }}
         />
 
-        <div className="container mx-auto px-4 pt-32 pb-64 md:pt-20 md:pb-32 relative z-10">
+        <div className="container mx-auto px-4 pt-8 pb-64 md:pt-8 md:pb-32 relative z-10">
           <motion.div initial="hidden" animate="visible" className="max-w-3xl">
             <motion.span variants={fadeUp} custom={0} className="inline-block px-4 py-1.5 rounded-full bg-primary/20 text-white text-sm font-semibold mb-6 border border-white/20 backdrop-blur-md">
               📚 Admissions Open for 2026/2027 Session
@@ -135,7 +135,7 @@ export default function HomePage() {
           </motion.div>
         </div>
 
-        {/* Stats bar */}
+        {/* Stats bar - this stays the same */}
         <div className="absolute bottom-0 left-0 w-full z-20">
           <div className="container mx-auto px-0 md:px-4">
             <div className="bg-[#1a1513] border-t border-white/10 rounded-t-2xl shadow-2xl overflow-hidden">
