@@ -77,7 +77,7 @@ export default function AdminLoginPage() {
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              placeholder="admin@thebenedictineacademyportal.com"
+              placeholder="Enter email address"
               className="w-full p-3 border border-slate-200 rounded-lg outline-none focus:ring-2 focus:ring-[#8B5E3C]/20"
               required
               autoComplete="email"
