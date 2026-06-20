@@ -74,18 +74,18 @@ export interface HomeTestimonial {
 
 export const homeTestimonials: HomeTestimonial[] = [
   {
-    name: 'Mrs. Adebayo',
+    name: 'Mrs. Umoize Mary',
     role: 'Parent',
-    content: 'The best decision for my children.',
+    content: 'Taking my children to The Benedictine Academy was the best decision I ever made.',
   },
   {
-    name: 'Mr. Okonkwo',
+    name: 'Mr. Okonkwo Joseph',
     role: 'Alumnus',
-    content: 'Benedictine Academy gave me the foundation I needed.',
+    content: 'The Benedictine Academy gave me the foundation I needed in my academic journey.',
   },
   {
-    name: 'Dr. Eze',
-    role: 'Community Leader',
+    name: 'Dr. Eze Charlse',
+    role: 'Parent',
     content: 'A beacon of academic and moral excellence.',
   },
 ];
