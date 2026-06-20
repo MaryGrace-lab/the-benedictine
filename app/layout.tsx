@@ -13,12 +13,35 @@ const inter = Inter({
 
 export const metadata: Metadata = {
   title: {
-    default: "The Benedictine Academy",
+    default: "The Benedictine Academy — Student Result Portal",
     template: "%s — The Benedictine Academy",
   },
   description:
-    "Catholic Education Centre - Nurturing Minds, Building Character. Check your academic results online.",
-  keywords: ["school", "results", "The Benedictine Academy", "Benin City", "education", "Catholic school"],
+    "Official student result management portal for The Benedictine Academy, Benin City. Check academic results, report cards, and exam scores online. Catholic Education Centre — Learning in Wisdom.",
+  keywords: [
+    "Benedictine Academy",
+    "school results",
+    "Benin City",
+    "Catholic school",
+    "result checker",
+    "student portal",
+    "academic results",
+    "Edo State",
+    "education",
+  ],
+  icons: {
+    icon: "/favicon.ico",
+    apple: "/logo.jpg",
+  },
+  openGraph: {
+    title: "The Benedictine Academy — Student Result Portal",
+    description:
+      "Check your academic results online. The Benedictine Academy, Catholic Education Centre, Benin City.",
+    url: "https://thebenedictineacademyportal.com",
+    siteName: "The Benedictine Academy",
+    locale: "en_NG",
+    type: "website",
+  },
 };
 
 export default function RootLayout({
