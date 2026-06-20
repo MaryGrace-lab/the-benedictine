@@ -9,7 +9,6 @@ import { z } from "zod";
 import { calculateSubjectResult, calculateResultSummary } from "@/lib/grading";
 import { calculateSocialBehaviourScore } from "@/lib/rating";
 import { getAdminFromSession, getTeacherFromSession } from "@/lib/jwt";
-import { Evaluation, Rating } from "@prisma/client";
 
 // ── Validation Schema ──
 const ResultUploadSchema = z.object({
@@ -59,7 +58,6 @@ const ResultUploadSchema = z.object({
 
 export async function POST(req: Request) {
   try {
-    // Auth: Allow both Admin and Teacher
     const adminSession = await getAdminFromSession();
     const teacherSession = await getTeacherFromSession();
 
@@ -97,8 +95,8 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Academic session not found" }, { status: 404 });
     }
 
-    const result = await prisma.$transaction(async (tx) => {
-      const savedResults = [];
+    const result: any = await prisma.$transaction(async (tx: any) => {
+      const savedResults: any[] = [];
       const subjectTotals: (number | null)[] = [];
 
       // 1. Save Subject Results
@@ -141,15 +139,15 @@ export async function POST(req: Request) {
       }
 
       // 2. Save Social Behaviour
-      let socialBehaviourRecord = null;
+      let socialBehaviourRecord: any = null;
       if (data.socialBehaviour) {
         const { totalCumulative, totalScored, percentageAvg, remark } =
           calculateSocialBehaviourScore(data.socialBehaviour as Record<string, unknown>);
 
         const mappedBehaviour = Object.entries(data.socialBehaviour).reduce((acc, [key, val]) => {
-          acc[key] = val === null ? null : (val as Rating);
+          acc[key] = val === null ? null : (val as any);
           return acc;
-        }, {} as Record<string, Rating | null>);
+        }, {} as Record<string, any>);
 
         socialBehaviourRecord = await tx.socialBehaviour.upsert({
           where: { studentId_sessionId: { studentId: student.id, sessionId: data.sessionId } },
@@ -162,7 +160,7 @@ export async function POST(req: Request) {
       }
 
       // 3. Save Attendance
-      let attendanceRecord = null;
+      let attendanceRecord: any = null;
       if (data.attendance) {
         attendanceRecord = await tx.attendance.upsert({
           where: { studentId_sessionId: { studentId: student.id, sessionId: data.sessionId } },
@@ -178,7 +176,7 @@ export async function POST(req: Request) {
         where: { studentId_sessionId: { studentId: student.id, sessionId: data.sessionId } },
         update: {
           noInClass: data.noInClass ?? null,
-          evaluation: data.evaluation ? (data.evaluation as Evaluation) : null,
+          evaluation: data.evaluation ? (data.evaluation as any) : null,
           totalCumulative: summary.totalCumulative,
           totalScore: summary.totalScore,
           percentageAvg: summary.percentageAvg,
@@ -194,7 +192,7 @@ export async function POST(req: Request) {
         create: {
           studentId: student.id, sessionId: data.sessionId,
           noInClass: data.noInClass ?? null,
-          evaluation: data.evaluation ? (data.evaluation as Evaluation) : null,
+          evaluation: data.evaluation ? (data.evaluation as any) : null,
           totalCumulative: summary.totalCumulative,
           totalScore: summary.totalScore,
           percentageAvg: summary.percentageAvg,
@@ -209,7 +207,7 @@ export async function POST(req: Request) {
         } as any,
       });
 
-      return { results: savedResults, socialBehaviour: socialBehaviourRecord, attendance: attendanceRecord, resultSummary: resultSummaryRecord };
+      return { results: savedResults, socialBehaviour: socialBehaviourRecord, attendance: attendanceRecord, resultSummary: resultSummaryRecord } as any;
     }, { timeout: 30000 });
 
     return NextResponse.json({
