@@ -35,12 +35,18 @@ export default async function StudentDashboardPage() {
     where: { isActive: true },
   });
 
-  let latestResult = null;
-  if (activeSession) {
+  let latestResult: { percentageAvg: number | null; remark: string | null; totalScore: number | null; totalCumulative: number | null } | null = null;
+if (activeSession) {
+  const studentRecord = await prisma.student.findUnique({
+    where: { studentId: sessionStudentId },
+    select: { id: true },
+  });
+
+  if (studentRecord) {
     latestResult = await prisma.resultSummary.findUnique({
       where: {
         studentId_sessionId: {
-          studentId: (await prisma.student.findUnique({ where: { studentId: sessionStudentId }, select: { id: true } }))!.id,
+          studentId: studentRecord.id,
           sessionId: activeSession.id,
         },
       },
@@ -52,6 +58,7 @@ export default async function StudentDashboardPage() {
       },
     });
   }
+}
 
   // Count total sessions with results
   const studentDb = await prisma.student.findUnique({

@@ -44,10 +44,10 @@ export default async function AdminDashboardPage() {
   { label: "Active Term", value: activeSession?.term || "—", icon: "BarChart3" },
 ];
 
-  const chartData = studentsByClass.map((item) => ({
-    name: item.class,
-    students: item._count.id,
-  }));
+  const chartData = studentsByClass.map((item: { class: string; _count: { id: number } }) => ({
+  name: item.class,
+  students: item._count.id,
+}));
 
   return (
     <DashboardClient
