@@ -1,5 +1,6 @@
 // ──────────────────────────────────────────────
 // Student Profile Page — Server Component
+// Fetches student details and result history.
 // ──────────────────────────────────────────────
 
 import { prisma } from "@/lib/prisma";
@@ -38,7 +39,8 @@ export default async function StudentProfilePage({ params }: Props) {
     },
   });
 
-  const sessionIds = resultHistory.map((r) => r.sessionId);
+  const sessionIds: string[] = resultHistory.map((r: { sessionId: string }) => r.sessionId);
+  
   const resultCounts = await prisma.result.groupBy({
     by: ["sessionId"],
     where: { studentId: student.id, sessionId: { in: sessionIds } },
@@ -46,7 +48,7 @@ export default async function StudentProfilePage({ params }: Props) {
   });
 
   const countsMap: Record<string, number> = {};
-  resultCounts.forEach((r) => {
+  resultCounts.forEach((r: { sessionId: string; _count: { id: number } }) => {
     countsMap[r.sessionId] = r._count.id;
   });
 
@@ -65,7 +67,7 @@ export default async function StudentProfilePage({ params }: Props) {
   }));
 
   const bestPerformance = history.length > 0
-    ? Math.max(...history.map((h) => h.percentageAvg || 0))
+    ? Math.max(...history.map((h: { percentageAvg: number | null }) => h.percentageAvg || 0))
     : 0;
 
   const latestPerformance = history.length > 0 ? history[0].percentageAvg : null;
