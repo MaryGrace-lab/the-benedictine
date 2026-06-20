@@ -1,6 +1,5 @@
 // ──────────────────────────────────────────────
 // Student Profile Page — Server Component
-// Fetches student details and result history.
 // ──────────────────────────────────────────────
 
 import { prisma } from "@/lib/prisma";
@@ -31,7 +30,6 @@ export default async function StudentProfilePage({ params }: Props) {
 
   if (!student) notFound();
 
-  // Get all result summaries across all sessions
   const resultHistory = await prisma.resultSummary.findMany({
     where: { studentId: student.id },
     orderBy: { createdAt: "desc" },

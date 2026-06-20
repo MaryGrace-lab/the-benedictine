@@ -56,7 +56,7 @@ export default async function TeacherStudentProfilePage({ params }: Props) {
     },
   });
 
-  const sessionIds = resultHistory.map((r) => r.sessionId);
+  const sessionIds = resultHistory.map((r: { sessionId: string }) => r.sessionId);
   const resultCounts = await prisma.result.groupBy({
     by: ["sessionId"],
     where: { studentId: student.id, sessionId: { in: sessionIds } },
