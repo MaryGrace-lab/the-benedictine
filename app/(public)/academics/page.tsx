@@ -1,31 +1,14 @@
-"use client";
-
-import React, { useRef } from 'react';
-import HeroSection from './_components/HeroSection';
-import CurriculumSection from './_components/CurriculumSection';
-import CTASection from './_components/CTASection';
+import React from 'react';
+import { Metadata } from 'next';
+import AcademicsClient from './AcademicsClient';
 import { curriculumSections } from './_data/curriculum';
 
-const AcademicsPage = () => {
-  const programsRef = useRef<HTMLDivElement>(null);
-
-  return (
-    <main className="min-h-screen bg-[#FDFCFB] text-stone-900">
-      <HeroSection scrollToRef={programsRef} />
-
-      <div ref={programsRef}>
-        {curriculumSections.map((section, index) => (
-          <CurriculumSection 
-            key={section.id} 
-            section={section} 
-            index={index} 
-          />
-        ))}
-      </div>
-
-      <CTASection />
-    </main>
-  );
+export const metadata: Metadata = {
+  title: 'Academics | The Benedictine Academy',
+  description:
+    'Explore our comprehensive primary and secondary curriculum designed for academic excellence and character formation.',
 };
 
-export default AcademicsPage;
+export default function AcademicsPage() {
+  return <AcademicsClient sections={curriculumSections} />;
+}

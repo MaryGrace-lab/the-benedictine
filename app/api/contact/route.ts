@@ -6,6 +6,7 @@ import { headers } from "next/headers";
 import { Ratelimit } from "@upstash/ratelimit";
 import { Redis } from "@upstash/redis";
 import { prisma } from "@/lib/prisma";
+import { escapeHtml } from "@/lib/sanitize"; // ✅ Import shared utility
 
 // 1. Initialize Resend
 const resend = new Resend(process.env.RESEND_API_KEY);
@@ -27,14 +28,10 @@ const ContactSchema = z.object({
   honeypot: z.string().max(0).optional(),
 });
 
-function sanitizeHtml(str: string): string {
-  return str
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;")
-    .replace(/'/g, "&#039;");
-}
+// ❌ DELETE this local function
+// function sanitizeHtml(str: string): string {
+//   return str ...
+// }
 
 export async function POST(req: Request) {
   try {
@@ -86,12 +83,12 @@ export async function POST(req: Request) {
 
     const { name, email, phone, message } = validation.data;
     
-    // F. Sanitize input
+    // F. Sanitize input — use imported escapeHtml
     const safe = {
-      name: sanitizeHtml(name),
-      email: sanitizeHtml(email.toLowerCase()),
-      phone: sanitizeHtml(phone),
-      message: sanitizeHtml(message),
+      name: escapeHtml(name),
+      email: escapeHtml(email.toLowerCase()),
+      phone: escapeHtml(phone),
+      message: escapeHtml(message),
     };
 
     // G. Check API key

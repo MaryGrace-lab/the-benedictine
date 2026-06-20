@@ -1,6 +1,4 @@
 import { ReactNode } from 'react';
-import Link from 'next/link';
-import { MessageCircle } from 'lucide-react';
 
 export interface FAQItem {
   q: string;
@@ -14,27 +12,7 @@ export const faqs: FAQItem[] = [
   },
   { 
     q: 'What is the school fee structure?', 
-    a: (
-      <span>
-        Fees vary by class level. Please{' '}
-        <Link 
-          href="/contact" 
-          className="text-[#270f01] underline font-semibold hover:text-[#b08d2a] transition-colors"
-        >
-          contact the admissions office
-        </Link>{' '}
-        or reach out via{' '}
-        <a 
-          href="https://wa.me/2347059443788"
-          target="_blank"
-          rel="noopener noreferrer"
-          className="inline-flex items-center gap-1 text-green-600 underline font-semibold"
-        >
-          WhatsApp <MessageCircle className="w-3 h-3" />
-        </a>{' '}
-        for the current fee schedule. Payment plans are available.
-      </span>
-    ) 
+    a: 'Fees vary by class level. Please contact the admissions office (via /contact) or reach out on WhatsApp (https://wa.me/2347059443788) for the current fee schedule. Payment plans are available.'
   },
   { q: 'Do you offer boarding facilities?', a: 'Currently, The Benedictine Academy operates as a day school.' },
   { q: 'What extracurricular activities are available?', a: 'We offer a wide range including football, martial arts, debate competition, drama, coding club, music, art, and catering services.' },

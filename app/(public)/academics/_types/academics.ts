@@ -1,5 +1,3 @@
-import { LucideIcon } from 'lucide-react';
-
 export interface CurriculumSection {
   id: string;
   title: string;
@@ -7,6 +5,6 @@ export interface CurriculumSection {
   description: string;
   subjects: string[];
   image: string;
-  Icon: LucideIcon;        // ✅ Store component reference, not JSX
+  iconKey: string;   // 'bookOpen' | 'graduationCap' — plain string, not a component
   accent: string;
 }

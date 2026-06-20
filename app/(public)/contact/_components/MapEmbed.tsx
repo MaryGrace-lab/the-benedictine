@@ -1,6 +1,6 @@
 import React from 'react';
 
-const MapEmbed = () => {
+export default function MapEmbed() {
   return (
     <div className="relative rounded-2xl md:rounded-3xl overflow-hidden border border-slate-200 shadow-xl h-64 md:h-80 group">
       <iframe
@@ -11,10 +11,9 @@ const MapEmbed = () => {
         allowFullScreen
         loading="lazy"
         referrerPolicy="no-referrer-when-downgrade"
+        title="The Benedictine Academy Location"
         className="grayscale hover:grayscale-0 transition-all duration-700"
       />
     </div>
   );
-};
-
-export default MapEmbed;
+}

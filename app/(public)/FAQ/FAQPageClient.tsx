@@ -1,18 +1,24 @@
 "use client";
 
-import React from 'react';
+import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ChevronDown } from 'lucide-react';
-import { FAQItem } from '../_data/faqs';
+import { faqs, FAQItem } from './_data/faqs';
+import HeroSection from './_components/HeroSection';
+import CTASection from './_components/CTASection';
 
-interface AccordionItemProps {
+// ----------------- Accordion Item -----------------
+function AccordionItem({
+  faq,
+  index,
+  isOpen,
+  onToggle,
+}: {
   faq: FAQItem;
   index: number;
   isOpen: boolean;
   onToggle: (index: number) => void;
-}
-
-const AccordionItem = ({ faq, index, isOpen, onToggle }: AccordionItemProps) => {
+}) {
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter' || e.key === ' ') {
       e.preventDefault();
@@ -39,8 +45,12 @@ const AccordionItem = ({ faq, index, isOpen, onToggle }: AccordionItemProps) => 
         <span className="font-heading font-bold text-slate-800 text-lg md:text-xl pr-4 leading-snug">
           {faq.q}
         </span>
-        <div className={`shrink-0 p-2 rounded-full transition-colors ${isOpen ? 'bg-[#d4af37]/10' : 'bg-slate-100'}`}>
-          <ChevronDown 
+        <div
+          className={`shrink-0 p-2 rounded-full transition-colors ${
+            isOpen ? 'bg-[#d4af37]/10' : 'bg-slate-100'
+          }`}
+        >
+          <ChevronDown
             className={`w-5 h-5 transition-transform duration-500 ${
               isOpen ? 'rotate-180 text-[#d4af37]' : 'text-slate-500'
             }`}
@@ -68,6 +78,51 @@ const AccordionItem = ({ faq, index, isOpen, onToggle }: AccordionItemProps) => 
       </AnimatePresence>
     </motion.div>
   );
-};
+}
 
-export default AccordionItem;
+// ----------------- Page Component -----------------
+export default function FAQPageClient() {
+  const [openIndex, setOpenIndex] = useState<number | null>(null);
+
+  const handleToggle = (index: number) => {
+    setOpenIndex((prev) => (prev === index ? null : index));
+  };
+
+  return (
+    <main className="min-h-screen bg-background font-sans overflow-x-hidden">
+      {/* Hero – wrap server component in motion for entrance */}
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.6 }}
+      >
+        <HeroSection />
+      </motion.div>
+
+      <section className="py-12 md:py-20 bg-slate-50">
+        <div className="container mx-auto px-4 md:px-6 max-w-4xl">
+          <div className="space-y-4">
+            {faqs.map((faq, i) => (
+              <AccordionItem
+                key={i}
+                faq={faq}
+                index={i}
+                isOpen={openIndex === i}
+                onToggle={handleToggle}
+              />
+            ))}
+          </div>
+
+          {/* CTA – wrap in motion for scroll reveal */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+          >
+            <CTASection />
+          </motion.div>
+        </div>
+      </section>
+    </main>
+  );
+}

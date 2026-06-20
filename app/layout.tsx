@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono, Figtree, JetBrains_Mono } from "next/font/google";
 import "./globals.css";
-import { cn } from "@/lib/utilis";
+import { cn } from "@/lib/utils";
 
 const jetbrainsMonoHeading = JetBrains_Mono({subsets:['latin'],variable:'--font-heading'});
 const figtree = Figtree({subsets:['latin'],variable:'--font-sans'});

@@ -1,15 +1,13 @@
 import React from 'react';
-import HeroSection from './_components/HeroSection';
-import NewsGrid from './_components/NewsGrid';
-import { newsItems } from './_data/newsItems';
+import { Metadata } from 'next';
+import NewsPageClient from './NewsPageClient';
 
-const NewsPage = () => {
-  return (
-    <>
-      <HeroSection />
-      <NewsGrid items={newsItems} />
-    </>
-  );
+export const metadata: Metadata = {
+  title: 'News & Events | The Benedictine Academy',
+  description:
+    'Stay updated with the latest stories, achievements, and upcoming activities from The Benedictine Academy community.',
 };
 
-export default NewsPage;
+export default function NewsPage() {
+  return <NewsPageClient />;
+}

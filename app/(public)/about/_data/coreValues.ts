@@ -1,14 +1,12 @@
-import { Heart, Shield, Star, Users, BookOpen, LucideIcon } from 'lucide-react';
-
 export interface CoreValue {
   name: string;
-  Icon: LucideIcon;  // Store the component itself, not JSX
+  iconKey: string;   // plain string, not a component
 }
 
 export const coreValues: CoreValue[] = [
-  { name: 'Faith', Icon: Heart },
-  { name: 'Discipline', Icon: Shield },
-  { name: 'Excellence', Icon: Star },
-  { name: 'Integrity', Icon: Users },
-  { name: 'Service', Icon: BookOpen }
+  { name: 'Faith',      iconKey: 'heart' },
+  { name: 'Discipline', iconKey: 'shield' },
+  { name: 'Excellence', iconKey: 'star' },
+  { name: 'Integrity',  iconKey: 'handshake' },
+  { name: 'Service',    iconKey: 'heartHandshake' },
 ];

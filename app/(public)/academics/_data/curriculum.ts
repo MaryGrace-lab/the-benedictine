@@ -1,4 +1,3 @@
-import { BookOpen, GraduationCap } from 'lucide-react';
 import { CurriculumSection } from '../_types/academics';
 
 export const curriculumSections: CurriculumSection[] = [
@@ -14,7 +13,7 @@ export const curriculumSections: CurriculumSection[] = [
       'Writing', 'Diction', 'Public Speaking', 'Numeracy', 'Physical Education', 'Moral Education', 'Engineering'
     ],
     image: '/primary.jpg',
-    Icon: BookOpen,           // ✅ Just the component, no JSX
+    iconKey: 'bookOpen',
     accent: "bg-amber-100 text-amber-900"
   },
   {
@@ -29,7 +28,7 @@ export const curriculumSections: CurriculumSection[] = [
       'Programming', 'Engineering', 'Technical Drawing', 'Project Defence'
     ],
     image: '/secondary.jpg',
-    Icon: GraduationCap,      // ✅ Just the component, no JSX
+    iconKey: 'graduationCap',
     accent: "bg-orange-100 text-orange-900"
   },
 ];
