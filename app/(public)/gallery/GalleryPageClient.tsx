@@ -58,8 +58,12 @@ function GalleryCard({
       className="group relative cursor-pointer"
       onClick={() => onSelect(image.src)}
       onKeyDown={(e) => {
-        if (e.key === 'Enter') onSelect(image.src);
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          onSelect(image.src);
+        }
       }}
+
       tabIndex={0}
       role="button"
       aria-label={`View ${image.title}`}
@@ -158,7 +162,7 @@ function Lightbox({
             />
           </motion.div>
 
-          <p className="absolute bottom-4 text-white/50 text-xs sr-only">
+          <p className="absolute bottom-4 text-white/50 text-xs">
             Press Escape to close
           </p>
         </motion.div>

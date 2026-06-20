@@ -1,14 +1,13 @@
 'use client';
 
-import { useState, useRef, useEffect } from 'react';
-import Header from '@/components/layout/Header';
-import MobileMenu from '@/components/layout/MobileMenu';
-import Footer from '@/components/layout/Footer';
+import { useState, useEffect } from 'react';
+import Header from '@/components/PublicLayout/Header';
+import MobileMenu from '@/components/PublicLayout/MobileMenu';
+import Footer from '@/components/PublicLayout/Footer';
 
 export default function PublicLayout({ children }: { children: React.ReactNode }) {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  const menuRef = useRef<HTMLDivElement>(null);
-
+  
   // --- Scroll padding for fixed header ---
   useEffect(() => {
     const setScrollPadding = () => {
@@ -55,7 +54,6 @@ export default function PublicLayout({ children }: { children: React.ReactNode }
       <MobileMenu
         isOpen={isMobileMenuOpen}
         onClose={() => setIsMobileMenuOpen(false)}
-        menuRef={menuRef}
       />
       <main className="flex-1 pt-16 md:pt-20">{children}</main>
       <Footer />

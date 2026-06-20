@@ -1,7 +1,7 @@
 "use client";
 
 import React from 'react';
-import { motion } from 'framer-motion';
+import { motion, Variants } from 'framer-motion';
 import {
   Target,
   Binoculars,
@@ -11,13 +11,33 @@ import {
   Handshake,
   HeartHandshake,
 } from 'lucide-react';
-import {
-  fadeInLeft,
-  fadeInUp,
-  fadeUp,
-  scaleIn,
-} from '../../../_shared/_animations/variants';
 import { CoreValue } from '../_data/coreValues';
+import Image from 'next/image';
+
+// ──────────────── Animation Variants ────────────────
+const fadeUp: Variants = {
+  hidden: { opacity: 0, y: 30 },
+  visible: {
+    opacity: 1,
+    y: 0,
+    transition: { duration: 0.6, ease: "easeOut" }
+  }
+};
+
+const fadeInLeft: Variants = {
+  hidden: { opacity: 0, x: -20 },
+  visible: { opacity: 1, x: 0 }
+};
+
+const fadeInUp: Variants = {
+  hidden: { opacity: 0, y: 20 },
+  visible: { opacity: 1, y: 0 }
+};
+
+const scaleIn: Variants = {
+  hidden: { opacity: 0, scale: 0.9 },
+  visible: { opacity: 1, scale: 1 }
+};
 
 // ──────────────── Icon Mappings ────────────────
 const MISSION_CARD_ICONS: Record<
@@ -112,11 +132,6 @@ export function HistoryContent() {
             state-of-the-art facilities, including modern classrooms, science and computer
             labs, a library, and sports facilities.
           </p>
-          <p>
-            Today, we stand as a beacon of prestige, serving over{' '}
-            <span className="text-foreground font-semibold">200 students</span>.
-          </p>
-
           <div className="grid grid-cols-2 gap-6 pt-4">
             <div className="p-4 rounded-2xl bg-background border border-border shadow-sm">
               <p className="text-3xl font-bold text-primary">{years}+</p>
@@ -140,12 +155,14 @@ export function HistoryContent() {
       >
         <div className="absolute inset-0 bg-primary/20 rounded-[2rem] rotate-3 scale-105 blur-sm" />
         <div className="relative rounded-[2rem] overflow-hidden shadow-2xl border-4 border-background">
-          <img
-            src="/1.jpg"
-            alt="The Benedictine Academy campus building and students"
-            className="w-full h-auto object-cover transition-transform duration-700 group-hover:scale-105"
-            loading="lazy"
-          />
+        <Image
+          src="/1.jpg"
+          alt="The Benedictine Academy campus building and students"
+          width={600}
+          height={400}
+          className="object-cover transition-transform duration-700 group-hover:scale-105"
+          loading="lazy"
+        />
         </div>
       </motion.div>
     </div>

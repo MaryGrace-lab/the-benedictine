@@ -18,6 +18,7 @@
         "name": "next"
       }
     ],
+    /* Modern way to map root aliases without using the deprecated baseUrl */
     "paths": {
       "@/*": ["./*"]
     }

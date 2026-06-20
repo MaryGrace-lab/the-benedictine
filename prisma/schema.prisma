@@ -1,4 +1,7 @@
-// prisma/schema.prisma
+// ──────────────────────────────────────────────
+// The Benedictine Academy - Database Schema
+// ──────────────────────────────────────────────
+
 generator client {
   provider = "prisma-client-js"
 }
@@ -7,19 +10,203 @@ datasource db {
   provider = "postgresql"
 }
 
-// Contact messages table
-model ContactMessage {
-  id        String   @id @default(cuid())
-  name      String
-  email     String
-  phone     String?
-  subject   String
-  message   String   @db.Text
-  isRead    Boolean  @default(false)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+// ── Enums ──
 
-  @@index([email])
-  @@index([createdAt])
-  @@index([isRead])   // Added for admin filtering
+enum Term {
+  FIRST
+  SECOND
+  THIRD
+}
+
+enum Grade {
+  A       // Distinction (90%+)
+  B       // Credit (70%+)
+  C       // Pass (50%+)
+  F       // Fail (Below 50%)
+}
+
+enum Rating {
+  EXCELLENT   // 5
+  GOOD        // 4
+  AVERAGE     // 3
+  POOR        // 2
+  VERY_POOR   // 1
+}
+
+enum Evaluation {
+  EXCELLENT
+  GOOD
+  AVERAGE
+  BELOW_AVERAGE
+  POOR
+}
+
+enum Role {
+  ADMIN
+  TEACHER
+}
+
+enum StudentType {
+  SCIENCE
+  ART
+  COMMERCIAL
+}
+
+// ── Models ──
+
+model User {
+  id            String    @id @default(cuid())
+  name          String
+  email         String    @unique
+  password      String
+  role          Role
+  assignedClass String?   // For TEACHER role only
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+}
+
+model AcademicSession {
+  id               String             @id @default(cuid())
+  year             String
+  term             Term
+  isActive         Boolean            @default(false)
+  results          Result[]
+  socialBehaviours SocialBehaviour[]
+  attendances      Attendance[]
+  resultSummaries  ResultSummary[]
+  createdAt        DateTime           @default(now())
+  updatedAt        DateTime           @updatedAt
+}
+
+model Student {
+  id                String             @id @default(cuid())
+  studentId         String             @unique
+  password          String
+  firstName         String
+  lastName          String
+  class             String
+  studentType       StudentType?       // SCIENCE, ART, COMMERCIAL — for SSS only
+  guardianName      String?
+  guardianPhone     String?
+  results           Result[]
+  socialBehaviours  SocialBehaviour[]
+  attendances       Attendance[]
+  resultSummaries   ResultSummary[]
+  createdAt         DateTime           @default(now())
+  updatedAt         DateTime           @updatedAt
+}
+
+model Subject {
+  id        String    @id @default(cuid())
+  name      String
+  level     String    @default("JSS")  // JSS, SSS
+  stream    String?                     // SCIENCE, ART, COMMERCIAL, ALL
+  results   Result[]
+
+  @@unique([name, level, stream])
+}
+
+model Result {
+  id          String          @id @default(cuid())
+  student     Student         @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  studentId   String
+  subject     Subject         @relation(fields: [subjectId], references: [id])
+  subjectId   String
+  session     AcademicSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  sessionId   String
+
+  firstTest   Float?
+  secondTest  Float?
+  exam        Float?
+  total       Float?
+  grade       Grade?
+
+  @@unique([studentId, subjectId, sessionId])
+
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
+}
+
+model SocialBehaviour {
+  id          String          @id @default(cuid())
+  student     Student         @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  studentId   String
+  session     AcademicSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  sessionId   String
+
+  obedience             Rating?
+  honesty               Rating?
+  responsibility        Rating?
+  selfControl           Rating?
+  leadership            Rating?
+  relationshipWithOthers Rating?
+  gamesAndSports        Rating?
+  health                Rating?
+  neatness              Rating?
+  manipulativeSkill     Rating?
+
+  totalCumulative Float?
+  totalScored     Float?
+  percentageAvg   Float?
+  remark          String?
+
+  @@unique([studentId, sessionId])
+
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
+}
+
+model Attendance {
+  id              String          @id @default(cuid())
+  student         Student         @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  studentId       String
+  session         AcademicSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  sessionId       String
+
+  schoolOpened    Int?
+  schoolPresent   Int?
+  sportOpened     Int?
+  sportPresent    Int?
+  othersOpened    Int?
+  othersPresent   Int?
+  organizedActivitiesOpened Int?
+  organizedActivitiesPresent Int?
+
+  remark          String?
+
+  @@unique([studentId, sessionId])
+
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+}
+
+model ResultSummary {
+  id              String          @id @default(cuid())
+  student         Student         @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  studentId       String
+  session         AcademicSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  sessionId       String
+
+  noInClass       Int?
+  evaluation      Evaluation?
+
+  totalCumulative Float?
+  totalScore      Float?
+  percentageAvg   Float?
+  remark          String?
+
+  classTeacherComment String?
+  nextTermFees         String?
+  outstandingFees      String?
+  books                String?
+  nextTermBegins       String?
+  headTeacherComment   String?
+  parentName           String?
+  parentSignature      String?
+  date                 DateTime?
+
+  @@unique([studentId, sessionId])
+
+  createdAt         DateTime        @default(now())
+  updatedAt         DateTime        @updatedAt
 }

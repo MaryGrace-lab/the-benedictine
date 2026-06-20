@@ -1,7 +1,6 @@
 import { 
   GraduationCap, User, Users, Home, Info, BookOpen, 
-  UserPlus, Phone, HelpCircle, Newspaper, Image as ImageIcon,
-  MonitorPlay, LockKeyhole
+  UserPlus, Phone, HelpCircle, Newspaper, Image as ImageIcon, LockKeyhole
 } from "lucide-react";
 
 export const navLinks = [
@@ -16,7 +15,7 @@ export const navLinks = [
 ];
 
 export const portalOptions = [
-  { name: 'Student Login', href: '/login/student', icon: GraduationCap, color: 'text-blue-600' },
-  { name: 'Teacher Login', href: '/login/teacher', icon: User, color: 'text-emerald-600' },
-  { name: 'Parent Login', href: '/login/parent', icon: Users, color: 'text-purple-600' },
+  { name: 'Admin Login', href: '/admin-portal/login', icon: LockKeyhole, color: 'text-red-600' },
+  { name: 'Student Login', href: '/student-portal/login', icon: GraduationCap, color: 'text-blue-600' },
+  { name: 'Teacher Login', href: '/teacher-portal/login', icon: User, color: 'text-emerald-600' },
 ];

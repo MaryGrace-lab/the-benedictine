@@ -11,7 +11,7 @@ import {
   Cookie,
   FileText,
 } from 'lucide-react';
-import { privacySections, PrivacySection } from './_data/privacySections';
+import { privacySections, privacyMetadata, contactInfo } from './_data/privacySections';
 
 // Icon mapping – functions stay inside the client component
 const ICON_MAP: Record<string, React.ComponentType<{ className?: string }>> = {
@@ -53,7 +53,7 @@ export default function PrivacyPageClient() {
               Your privacy matters to us. Learn how we collect, use, and protect your information.
             </motion.p>
             <motion.p variants={fadeUp} custom={3} className="text-stone-400 text-sm mt-4">
-              Last Updated: April 2026
+              Last Updated: {privacyMetadata.lastUpdated}
             </motion.p>
           </motion.div>
         </div>
@@ -144,15 +144,9 @@ export default function PrivacyPageClient() {
                 If you have questions about this Privacy Policy or our data practices, please contact us at:
               </p>
               <div className="space-y-2">
-                <p className="text-stone-700">
-                  <strong>Email:</strong> thebenedictineacademy@gmail.com
-                </p>
-                <p className="text-stone-700">
-                  <strong>Phone:</strong> +234 705 944 3788
-                </p>
-                <p className="text-stone-700">
-                  <strong>Address:</strong> 37, Old Mechanic Road, Off Siluko Road, Benin City.
-                </p>
+                <p><strong>Email:</strong> {contactInfo.email}</p>
+                <p><strong>Phone:</strong> {contactInfo.phone}</p>    
+                <p><strong>Address:</strong> {contactInfo.address}</p>
               </div>
             </motion.div>
 

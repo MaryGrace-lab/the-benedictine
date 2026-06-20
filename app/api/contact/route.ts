@@ -5,7 +5,6 @@ import { z } from "zod";
 import { headers } from "next/headers";
 import { Ratelimit } from "@upstash/ratelimit";
 import { Redis } from "@upstash/redis";
-import { prisma } from "@/lib/prisma";
 import { escapeHtml } from "@/lib/sanitize"; // ✅ Import shared utility
 
 // 1. Initialize Resend
@@ -28,10 +27,6 @@ const ContactSchema = z.object({
   honeypot: z.string().max(0).optional(),
 });
 
-// ❌ DELETE this local function
-// function sanitizeHtml(str: string): string {
-//   return str ...
-// }
 
 export async function POST(req: Request) {
   try {
@@ -62,6 +57,9 @@ export async function POST(req: Request) {
 
     // C. Parse request body
     const body = await req.json();
+    
+
+
 
     // D. Honeypot check (bot detection)
     if (body.honeypot) {
@@ -95,24 +93,6 @@ export async function POST(req: Request) {
     if (!process.env.RESEND_API_KEY) {
       console.error("❌ RESEND_API_KEY not configured");
       return NextResponse.json({ error: "Email service not configured" }, { status: 500 });
-    }
-
-    // H. Save to database FIRST
-    try {
-      await prisma.contactMessage.create({
-        data: {
-          name: safe.name,
-          email: safe.email,
-          phone: safe.phone || null,
-          subject: `New inquiry from ${safe.name}`,
-          message: safe.message,
-          isRead: false,
-        },
-      });
-      console.log("✅ Contact saved to database");
-    } catch (dbError) {
-      console.error("❌ Database save failed:", dbError);
-      // Continue with email even if DB fails
     }
 
     // I. Send email notification

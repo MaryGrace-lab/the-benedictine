@@ -16,7 +16,8 @@ export const galleryImages: GalleryImage[] = [
   { id: 8, title: 'Soap Production Practical', category: 'Academic', src: '/soap-practical.jpg' },
   { id: 9, title: 'Classroom', category: 'Facilities', src: '/classroom.jpg' },
   { id: 10, title: 'Computer Lab', category: 'Facilities', src: '/computer-lab.jpg' },
-  { id: 11, title: 'Music Room', category: 'Facilities', src: '/music.jpg' },
+  { id: 11, title: 'Computer Lab Practical', category: 'Facilities', src: '/computer-lab-2.jpg' },
+  { id: 12, title: 'Music Room', category: 'Facilities', src: '/music.jpg' },
 ];
 
 export const categories = ['All', 'School', 'Academic', 'Facilities', 'Events'];

@@ -108,7 +108,7 @@ export default function HomePageClient({
           <div className="container mx-auto px-4 pt-8 pb-64 md:pt-8 md:pb-32 relative z-10">
             <motion.div initial="hidden" animate="visible" className="max-w-3xl">
               <motion.span
-                variants={fadeUp}
+                variants={shouldReduceMotion ? {} : fadeUp}
                 custom={0}
                 className="inline-block px-4 py-1.5 rounded-full bg-primary/20 text-white text-sm font-semibold mb-6 border border-white/20 backdrop-blur-md"
               >
@@ -116,7 +116,7 @@ export default function HomePageClient({
               </motion.span>
 
               <motion.h1
-                variants={fadeUp}
+                variants={shouldReduceMotion ? {} : fadeUp}
                 custom={1}
                 className="text-4xl md:text-6xl font-bold text-white leading-tight mb-6"
               >
@@ -126,15 +126,15 @@ export default function HomePageClient({
               </motion.h1>
 
               <motion.p
-                variants={fadeUp}
+                variants={shouldReduceMotion ? {} : fadeUp}
                 custom={2}
                 className="text-lg md:text-xl text-white/90 mb-8 max-w-2xl"
               >
-                At Benedictine Academy, we provide a holistic education that develops the mind, body,
+                At The Benedictine Academy, we provide a holistic education that develops the mind, body,
                 and spirit. Join a community committed to excellence since 2017.
               </motion.p>
 
-              <motion.div variants={fadeUp} custom={3} className="flex flex-wrap gap-4">
+              <motion.div variants={shouldReduceMotion ? {} : fadeUp} custom={3} className="flex flex-wrap gap-4">
                 <Link href="/admission">
                   <Button className="bg-[#eab308] hover:bg-[#ca8a04] text-black font-bold" size="lg">
                     Apply Now <ArrowRight className="w-4 h-4 ml-1" aria-hidden="true" />
@@ -163,7 +163,7 @@ export default function HomePageClient({
                     return (
                       <motion.div
                         key={s.label}
-                        variants={fadeUp}
+                        variants={shouldReduceMotion ? {} : fadeUp}
                         custom={i + 4}
                         initial="hidden"
                         animate="visible"

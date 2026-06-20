@@ -1,8 +1,7 @@
 import React from 'react';
 import Link from 'next/link';
 
-export default function CTASection() {
-  const currentYear = new Date().getFullYear();
+export default function CTASection({ currentYear }: { currentYear: number }) {
   const nextYear = currentYear + 1;
 
   return (

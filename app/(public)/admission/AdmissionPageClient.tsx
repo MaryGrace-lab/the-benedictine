@@ -7,12 +7,15 @@ import PhysicalApplicationNotice from './_components/PhysicalApplicationNotice';
 import AdmissionRequirements from './_components/AdmissionRequirements';
 import ApplicationGuidelines from './_components/ApplicationGuidelines';
 import CTASection from './_components/CTASection';
+import { useReducedMotion } from 'framer-motion';
 
 function AnimatedSection({ children }: { children: React.ReactNode }) {
+  const shouldReduceMotion = useReducedMotion();
+
   return (
     <motion.div
-      initial={{ opacity: 0, y: 30 }}
-      whileInView={{ opacity: 1, y: 0 }}
+      initial={shouldReduceMotion ? {} : { opacity: 0, y: 30 }}
+      whileInView={shouldReduceMotion ? {} : { opacity: 1, y: 0 }}
       transition={{ duration: 0.6, ease: 'easeOut' }}
       viewport={{ once: true }}
     >

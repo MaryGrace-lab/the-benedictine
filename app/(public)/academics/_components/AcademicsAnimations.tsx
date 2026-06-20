@@ -16,6 +16,7 @@ export function AcademicsPageContent({
   sections: CurriculumSectionType[];
 }) {
   const programsRef = useRef<HTMLDivElement>(null);
+  const currentYear = new Date().getFullYear();   // ← dynamic, recalculated on every render
 
   return (
     <main className="min-h-screen bg-[#FDFCFB] text-stone-900">
@@ -31,7 +32,7 @@ export function AcademicsPageContent({
         ))}
       </div>
 
-      <CTASection />
+      <CTASection currentYear={currentYear} />   {/* ← pass dynamic year */}
     </main>
   );
 }
@@ -134,7 +135,7 @@ export function AnimatedCurriculumImageCard({
         <div className="relative aspect-[4/5] md:aspect-square overflow-hidden rounded-xl shadow-2xl">
           <Image
             src={image}
-            alt={title}
+            alt={`${title} - The Benedictine Academy`}
             fill
             className="object-cover group-hover:scale-110 transition-transform duration-700"
             sizes="(max-width: 768px) 100vw, 50vw"

@@ -1,6 +1,3 @@
-// app/(public)/_data/homepage.ts
-import type { LucideIcon } from 'lucide-react';
-
 // ---------- Stats Bar ----------
 export interface HomeStat {
   value: string;

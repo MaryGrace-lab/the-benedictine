@@ -1,4 +1,3 @@
-import React from 'react';
 import HeroSection from './_components/HeroSection';
 import HistorySection from './_components/HistorySection';
 import MissionVisionSection from './_components/MissionVisionSection';

@@ -9,7 +9,7 @@ export default function CTASection() {
           Ready to Apply?
         </h2>
         <p className="text-stone-600 mb-8 max-w-md mx-auto leading-relaxed">
-          Visit our campus to pick up an application form and begin the admission process.
+          Visit our school to pick up an application form and begin the admission process.
         </p>
         <Link
           href="/contact"

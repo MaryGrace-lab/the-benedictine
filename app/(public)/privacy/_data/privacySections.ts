@@ -69,3 +69,13 @@ export const privacySections: PrivacySection[] = [
     ],
   },
 ];
+
+export const contactInfo = {
+  email: 'thebenedictineacademy@gmail.com',
+  phone: '+234 705 944 3788',
+  address: '37, Old Mechanic Road, Off Siluko Road, Benin City.',
+};
+
+export const privacyMetadata = {
+  lastUpdated: 'April 2026',
+};

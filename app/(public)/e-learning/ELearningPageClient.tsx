@@ -3,8 +3,11 @@
 import React from 'react';
 import { motion } from 'framer-motion';
 import { BookOpen, GraduationCap, Clock } from 'lucide-react';
+import { useReducedMotion } from 'framer-motion';
 
 export default function ELearningPageClient() {
+  const shouldReduceMotion = useReducedMotion();
+
   return (
     <main className="min-h-screen bg-[#FDFCFB] flex items-center justify-center px-4">
       {/* Decorative background */}
@@ -14,8 +17,8 @@ export default function ELearningPageClient() {
       </div>
 
       <motion.div
-        initial={{ opacity: 0, y: 30 }}
-        animate={{ opacity: 1, y: 0 }}
+        initial={shouldReduceMotion ? {} : { opacity: 0, y: 30 }}
+        animate={shouldReduceMotion ? {} : { opacity: 1, y: 0 }}
         transition={{ duration: 0.7, ease: 'easeOut' }}
         className="relative z-10 max-w-2xl w-full text-center"
       >
@@ -47,7 +50,7 @@ export default function ELearningPageClient() {
           Interactive lessons, assignments, and virtual classrooms will be available shortly.
         </p>
 
-        <p className="text-stone-400 text-sm mt-8">
+        <p className="text-stone-500 text-sm mt-8">
           Stay tuned for the launch date.
         </p>
       </motion.div>

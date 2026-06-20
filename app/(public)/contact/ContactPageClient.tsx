@@ -39,49 +39,55 @@ function ContactForm() {
   const [errors, setErrors] = useState<Record<string, string>>({});
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    setIsSubmitting(true);
-    setErrors({});
+  e.preventDefault();
+  setIsSubmitting(true);
+  setErrors({});
 
-    const formData = new FormData(e.currentTarget);
-    const data = {
-      name: formData.get('name'),
-      email: formData.get('email'),
-      phone: formData.get('phone'),
-      message: formData.get('message'),
-      honeypot: formData.get('honeypot'),
-    };
-
-    try {
-      const response = await fetch('/api/contact', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(data),
-      });
-
-      const result = await response.json();
-
-      if (response.ok) {
-        toast.success('Thanks for reaching out! We have received your message.', {
-          duration: 5000,
-        });
-        (e.target as HTMLFormElement).reset();
-      } else {
-        let friendlyMessage = 'Something went wrong. Please try again.';
-        if (typeof result.error === 'object') {
-          friendlyMessage = 'Please ensure all fields are properly filled out.';
-        } else if (response.status === 429) {
-          friendlyMessage =
-            "You've sent a few messages recently. Please wait a bit before sending another.";
-        }
-        toast.error(friendlyMessage);
-      }
-    } catch {
-      toast.error("We're having trouble connecting. Please check your internet.");
-    } finally {
-      setIsSubmitting(false);
-    }
+  const formData = new FormData(e.currentTarget);
+  const data = {
+    name: formData.get('name'),
+    email: formData.get('email'),
+    phone: formData.get('phone'),
+    message: formData.get('message'),
+    honeypot: formData.get('honeypot'),
   };
+
+  try {
+    const response = await fetch('/api/contact', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data),
+    });
+
+    const result = await response.json();
+
+    if (response.ok) {
+      toast.success('Thanks for reaching out! We have received your message.', {
+        duration: 5000,
+      });
+      (e.target as HTMLFormElement).reset();
+    } else {
+      // Check for field-specific validation errors
+      if (result.details) {
+        // Convert array errors to single strings
+        const fieldErrors: Record<string, string> = {};
+        for (const [key, value] of Object.entries(result.details)) {
+          fieldErrors[key] = Array.isArray(value) ? value[0] : String(value);
+        }
+        setErrors(fieldErrors);
+        toast.error('Please fix the errors below.');
+      } else if (response.status === 429) {
+        toast.error("You've sent a few messages recently. Please wait a bit before sending another.");
+      } else {
+        toast.error(result.error || "Something went wrong. Please try again.");
+      }
+    }
+  } catch {
+    toast.error("We're having trouble connecting. Please check your internet.");
+  } finally {
+    setIsSubmitting(false);
+  }
+};
 
   const labelClass = 'text-[10px] md:text-xs font-bold uppercase tracking-widest text-[#270f01]';
   const inputClass =
@@ -144,7 +150,7 @@ function ContactForm() {
               required
               name="email"
               type="email"
-              placeholder="name@email.com"
+              placeholder="you@example.com"
               className={inputClass}
               aria-invalid={errors.email ? 'true' : 'false'}
               aria-describedby={errors.email ? 'email-error' : undefined}
@@ -167,7 +173,7 @@ function ContactForm() {
             required
             name="phone"
             type="tel"
-            placeholder="+234..."
+            placeholder="Enter your phone number"
             className={inputClass}
             aria-invalid={errors.phone ? 'true' : 'false'}
             aria-describedby={errors.phone ? 'phone-error' : undefined}

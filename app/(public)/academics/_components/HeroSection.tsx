@@ -28,9 +28,8 @@ export default function HeroSection({ scrollToRef }: HeroSectionProps) {
       <div className="container mx-auto px-6 relative z-10">
         <AnimatedHero />
 
-        <div className="flex gap-4">
           <ScrollToProgramsButton programsRef={scrollToRef} />
-        </div>
+
       </div>
 
       {/* Gradient fade */}
