@@ -30,24 +30,17 @@ export default function FeesInfo() {
         <div className="mt-12 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
           {[
             {
-              title: "Application Fee",
-              description:
-                "Non-refundable fee payable when submitting your application.",
-              amount: "Contact Office",
-              icon: FileText,
-            },
-            {
               title: "Tuition Fee",
               description:
-                "Annual tuition varies by class level. Includes textbooks and learning materials.",
+                "Termly tuition varies by class level. Includes learning materials.",
               amount: "Varies by Class",
               icon: Info,
             },
             {
               title: "Other Fees",
               description:
-                "Uniforms, extracurricular activities, transportation, and boarding (if applicable).",
-              amount: "Optional",
+                "Uniforms, extracurricular activities, etc.",
+              amount: "Contact Administration for Details",
               icon: HelpCircle,
             },
           ].map((item, index) => (

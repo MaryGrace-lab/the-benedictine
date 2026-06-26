@@ -6,9 +6,8 @@ export const classGroups = [
     requirements: [
       "Child must be at least 18 months old",
       "Birth certificate",
-      "Passport photograph (2 copies)",
+      "Passport photograph",
       "Immunization record",
-      "Parent/Guardian valid ID",
     ],
   },
   {
@@ -18,10 +17,9 @@ export const classGroups = [
     requirements: [
       "Child must be at least 3 years old",
       "Birth certificate",
-      "Passport photograph (2 copies)",
+      "Passport photograph",
       "Immunization record",
       "Previous school report (if applicable)",
-      "Parent/Guardian valid ID",
     ],
   },
   {
@@ -37,11 +35,9 @@ export const classGroups = [
     ageRange: "5 - 11 years",
     requirements: [
       "Birth certificate",
-      "Passport photograph (2 copies)",
+      "Passport photograph",
       "Previous school report",
-      "Transfer certificate (if transferring)",
       "Entrance assessment",
-      "Parent/Guardian valid ID",
     ],
   },
   {
@@ -50,12 +46,11 @@ export const classGroups = [
     ageRange: "11 - 17 years",
     requirements: [
       "Birth certificate",
-      "Passport photograph (2 copies)",
+      "Passport photograph",
       "Previous school report",
-      "Transfer certificate (if transferring)",
       "Entrance examination",
       "Oral interview",
-      "Parent/Guardian valid ID",
+      "PSLC result (for JSS1 entry)",
       "BECE result (for SSS1 entry)",
     ],
   },
@@ -63,16 +58,14 @@ export const classGroups = [
 
 export const generalRequirements = [
   "Completed online application form",
-  "Application fee payment (non-refundable)",
   "All documents must be clear and legible",
   "Original documents must be presented for verification",
-  "Admission is subject to availability of space",
+  "Admission is subject to approval by the school administration",
 ];
 
 export const requiredDocuments = [
   { name: "Birth Certificate", formats: "PDF, JPG, PNG" },
   { name: "Passport Photograph", formats: "JPG, PNG" },
-  { name: "Previous Academic Records", formats: "PDF, JPG, PNG, DOCX" },
+  { name: "Previous Term Records", formats: "PDF, JPG, PNG, DOCX" },
   { name: "Medical Report", formats: "PDF, JPG, PNG" },
-  { name: "Recommendation Letter", formats: "PDF, DOCX" },
 ];

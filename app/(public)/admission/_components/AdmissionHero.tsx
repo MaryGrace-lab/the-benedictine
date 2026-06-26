@@ -26,7 +26,7 @@ export default function AdmissionHero() {
             transition={{ delay: 0.2, duration: 0.4 }}
             className="inline-block rounded-full border border-white/30 bg-white/10 px-4 py-1.5 text-sm font-medium backdrop-blur-sm"
           >
-            2026/2027 Academic Session
+            Admission for 2026/2027 Academic Session is ongoing
           </motion.span>
 
           <h1 className="mt-6 text-4xl font-bold tracking-tight sm:text-5xl lg:text-6xl">
@@ -38,7 +38,7 @@ export default function AdmissionHero() {
 
           <p className="mt-6 text-lg leading-relaxed text-white/80 sm:text-xl">
             Begin your child&apos;s journey of academic excellence and character
-            formation. Applications are now open for Pre-Nursery through
+            formation. Applications are now open for Pre-Nursery, Nursery, Primary, and
             Secondary School.
           </p>
 
@@ -74,15 +74,6 @@ export default function AdmissionHero() {
               Already applied? Track your application
             </Link>
           </div>
-
-          <div className="mt-8 flex items-center justify-center gap-6 text-sm text-white/60">
-            <span className="flex items-center gap-1.5">
-              <Calendar className="h-4 w-4" />
-              Deadline: March 31, 2026
-            </span>
-            <span className="hidden sm:inline">•</span>
-            <span className="hidden sm:inline">Entrance Exam: April 11, 2026</span>
-          </div>
         </motion.div>
       </div>
 
@@ -95,7 +86,7 @@ export default function AdmissionHero() {
           className="h-auto w-full"
         >
           <path
-            d="M0 60V30C240 0 480 0 720 30C960 60 1200 60 1440 30V60H0Z"
+            d="M0 60V30C240 0 480 0 720 30C960 60 1200 60 1440 30V60H0Z" 
             className="fill-white dark:fill-gray-950"
           />
         </svg>

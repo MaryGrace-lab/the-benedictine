@@ -31,20 +31,20 @@ export default function ContactAdmission() {
             {
               icon: Phone,
               title: "Phone",
-              info: "+234 800 000 0000",
-              sub: "Mon-Fri, 8am-4pm",
+              info: "+234 705 944 3788",
+              sub: "We reply within 24hrs",
             },
             {
               icon: Mail,
               title: "Email",
-              info: "admissions@benedictineacademy.edu.ng",
+              info: "thebenedictineacademy@gmail.com",
               sub: "We reply within 24hrs",
             },
             {
               icon: MapPin,
               title: "Location",
-              info: "Visit Campus",
-              sub: "City, State, Nigeria",
+              info: "Visit Our School",
+              sub: "37, Old Mechanic Road, Off Siluko Road, Benin City, Edo State, Nigeria",
             },
             {
               icon: Clock,

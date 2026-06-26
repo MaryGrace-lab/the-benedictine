@@ -21,7 +21,7 @@ export default function AdmissionRequirements() {
             Admission Requirements
           </h2>
           <p className="mt-4 text-lg text-gray-600">
-            Requirements vary by class level. Select a class group to see
+            Requirements vary by class level. Select a class to see
             specific requirements.
           </p>
         </motion.div>
