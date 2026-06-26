@@ -52,7 +52,7 @@ export async function POST(req: Request) {
     cookieStore.set("admin-token", token, {
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",
-      sameSite: "lax",
+      sameSite: "strict",
       maxAge: 60 * 60 * 24,
       path: "/",
     });

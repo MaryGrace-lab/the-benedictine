@@ -16,7 +16,12 @@ export async function GET(req: Request) {
 
     const teacherSession = await getTeacherFromSession();
     const adminSession = await getAdminFromSession();
-
+        if (!teacherSession && !adminSession) {
+      return NextResponse.json(
+        { error: "Unauthorized" },
+        { status: 401 }
+      );
+    }
     let whereClause: any = {};
 
     if (teacherSession && teacherSession.role === "TEACHER" && teacherSession.assignedClass) {

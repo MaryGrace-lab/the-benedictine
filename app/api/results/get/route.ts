@@ -37,6 +37,17 @@ export async function GET(req: Request) {
       return NextResponse.json({ error: "Student not found" }, { status: 404 });
     }
 
+    if (
+      teacherSession &&
+      teacherSession.role === "TEACHER" &&
+      teacherSession.assignedClass !== student.class
+    ) {
+      return NextResponse.json(
+        { error: "Access denied" },
+        { status: 403 }
+      );
+    }
+
     // Determine correct subjects based on student's class and type
     const level = student.class?.startsWith("SSS") ? "SSS" : "JSS";
     const stream = student.studentType || undefined;

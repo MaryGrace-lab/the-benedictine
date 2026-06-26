@@ -87,6 +87,17 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Student profile not found" }, { status: 404 });
     }
 
+    if (
+      teacherSession &&
+      teacherSession.role === "TEACHER" &&
+      teacherSession.assignedClass !== student.class
+    ) {
+      return NextResponse.json(
+        { error: "Access denied" },
+        { status: 403 }
+      );
+    }
+
     const session = await prisma.academicSession.findUnique({
       where: { id: data.sessionId },
     });

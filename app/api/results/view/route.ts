@@ -41,6 +41,17 @@ export async function GET(req: Request) {
       return NextResponse.json({ error: "Student not found" }, { status: 404 });
     }
 
+    if (
+      teacherSession &&
+      teacherSession.role === "TEACHER" &&
+      teacherSession.assignedClass !== student.class
+    ) {
+      return NextResponse.json(
+        { error: "Access denied" },
+        { status: 403 }
+      );
+    }
+
     // Fetch everything in parallel
     const [session, results, socialBehaviour, attendance, resultSummary] = await Promise.all([
       prisma.academicSession.findUnique({ where: { id: sessionId } }),
