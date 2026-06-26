@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { sendEmail, statusUpdateEmail } from "@/lib/email";
 
 export async function GET(
   request: NextRequest,
@@ -57,6 +58,31 @@ export async function PATCH(
       where: { id },
       data: updateData,
     });
+
+    // Send status update email
+    if (status) {
+      const messages: Record<string, string> = {
+        UNDER_REVIEW: "Your application is being reviewed by our admission committee.",
+        AWAITING_TEST: "Your child has been shortlisted for the entrance test. Details coming soon.",
+        TEST_SCHEDULED: "The entrance test has been scheduled. Check your email for details.",
+        TEST_COMPLETED: "Your child has completed the test. Results being processed.",
+        INTERVIEW_SCHEDULED: "An interview has been scheduled. Date and time sent to your email.",
+        ACCEPTED: "Congratulations! Your child has been accepted. Admission letter available soon.",
+        ADMITTED: "Welcome to The Benedictine Academy! Your child is now officially admitted.",
+        REJECTED: "Unfortunately, the application was not successful. We wish you the best.",
+      };
+
+      if (messages[status]) {
+        const emailData = statusUpdateEmail({
+          parentName: application.fatherName,
+          childName: `${application.surname} ${application.firstName}`,
+          registrationNumber: application.registrationNumber!,
+          status,
+          message: messages[status],
+        });
+        sendEmail({ to: application.email, ...emailData });
+      }
+    }
 
     return NextResponse.json({ success: true, application });
   } catch (error) {

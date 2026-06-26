@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { sendEmail, applicationSubmittedEmail } from "@/lib/email";
 
 export async function POST(request: NextRequest) {
   try {
@@ -64,6 +65,16 @@ export async function POST(request: NextRequest) {
         submittedAt: new Date(),
       },
     });
+
+    const emailData = applicationSubmittedEmail({
+      parentName: body.fatherName,
+      childName: `${body.surname} ${body.firstName}`,
+      registrationNumber: application.registrationNumber!,
+      applyingClass: body.applyingClass,
+      session: body.session,
+    });
+
+    sendEmail({ to: body.email, ...emailData });
 
     return NextResponse.json({
       success: true,
