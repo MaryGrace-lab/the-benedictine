@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { validateFile, saveFile } from "@/lib/upload";
+import { validateFile, uploadToStorage } from "@/lib/supabase-storage";
 
 export async function POST(request: NextRequest) {
   try {
@@ -8,29 +8,18 @@ export async function POST(request: NextRequest) {
     const folder = (formData.get("folder") as string) || "admissions";
 
     if (!file) {
-      return NextResponse.json(
-        { error: "No file provided" },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: "No file provided" }, { status: 400 });
     }
 
-    // Validate file
     const validation = validateFile(file);
     if (!validation.valid) {
-      return NextResponse.json(
-        { error: validation.error },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: validation.error }, { status: 400 });
     }
 
-    // Save file
-    const result = await saveFile(file, folder);
+    const result = await uploadToStorage(file, folder);
 
     if (!result.success) {
-      return NextResponse.json(
-        { error: result.error },
-        { status: 500 }
-      );
+      return NextResponse.json({ error: result.error }, { status: 500 });
     }
 
     return NextResponse.json({
@@ -39,10 +28,7 @@ export async function POST(request: NextRequest) {
       fileName: file.name,
     });
   } catch (error) {
-    console.error("Upload API error:", error);
-    return NextResponse.json(
-      { error: "Internal server error" },
-      { status: 500 }
-    );
+    console.error("Upload error:", error);
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
 }
