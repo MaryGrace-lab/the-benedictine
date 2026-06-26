@@ -7,6 +7,7 @@
 import { prisma } from "@/lib/prisma";
 import EditResultsForm from "./EditResultsForm";
 
+export const dynamic = "force-dynamic";
 export default async function EditResultsPage() {
   // Fetch data directly from database on the server
   const [students, sessions] = await Promise.all([

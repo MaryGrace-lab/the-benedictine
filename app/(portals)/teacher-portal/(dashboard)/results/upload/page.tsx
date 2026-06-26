@@ -8,6 +8,7 @@ import { getTeacherFromSession } from "@/lib/jwt";
 import { redirect } from "next/navigation";
 import TeacherUploadClient from "./TeacherUploadClient";
 
+export const dynamic = "force-dynamic";
 export default async function TeacherUploadPage() {
   const session = await getTeacherFromSession();
 

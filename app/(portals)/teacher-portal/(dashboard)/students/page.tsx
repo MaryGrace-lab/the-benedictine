@@ -10,6 +10,7 @@ import { prisma } from "@/lib/prisma";
 import { getTeacherFromSession } from "@/lib/jwt";
 import { redirect } from "next/navigation";
 
+export const dynamic = "force-dynamic";
 export default async function TeacherStudentsPage() {
   const session = await getTeacherFromSession();
 

@@ -10,7 +10,7 @@ import StudentProfileClient from "./StudentProfileClient";
 interface Props {
   params: Promise<{ studentId: string }>;
 }
-
+export const dynamic = "force-dynamic";
 export default async function StudentProfilePage({ params }: Props) {
   const { studentId } = await params;
 

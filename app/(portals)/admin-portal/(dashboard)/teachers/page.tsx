@@ -6,6 +6,7 @@
 import { prisma } from "@/lib/prisma";
 import ManageTeachersClient from "./ManageTeachersClient";
 
+export const dynamic = "force-dynamic";
 export default async function ManageTeachersPage() {
   const teachers = await prisma.user.findMany({
     where: { role: "TEACHER" },

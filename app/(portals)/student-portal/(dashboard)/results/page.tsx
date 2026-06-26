@@ -22,6 +22,7 @@ type AvailableSession = {
   isActive: boolean;
 };
 
+export const dynamic = "force-dynamic";
 export default async function StudentResultsPage({
   searchParams,
 }: {

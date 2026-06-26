@@ -11,7 +11,7 @@ import TeacherStudentProfileClient from "./TeacherStudentProfileClient";
 interface Props {
   params: Promise<{ studentId: string }>;
 }
-
+export const dynamic = "force-dynamic";
 export default async function TeacherStudentProfilePage({ params }: Props) {
   const session = await getTeacherFromSession();
   const { studentId } = await params;

@@ -8,6 +8,7 @@ import { getStudentFromSession } from "@/lib/jwt";
 import { redirect } from "next/navigation";
 import StudentDashboardClient from "./StudentDashboardClient";
 
+export const dynamic = "force-dynamic";
 export default async function StudentDashboardPage() {
   const sessionStudentId = await getStudentFromSession();
 
