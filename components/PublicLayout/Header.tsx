@@ -3,11 +3,11 @@
 // ──────────────────────────────────────────────
 // Public Header — Client Component
 // Navigation bar with portal login dropdown.
+// CSS hover-based dropdown for reliability.
 // ──────────────────────────────────────────────
-
+//app/(public)/components/PublicLayout/Header.tsx
 import Link from "next/link";
 import Image from "next/image";
-import { useState } from "react";
 import { usePathname } from "next/navigation";
 import {
   ChevronDown, GraduationCap, User, ShieldCheck,
@@ -38,7 +38,6 @@ const portalOptions = [
 ];
 
 export default function Header({ isMobileMenuOpen, setIsMobileMenuOpen }: HeaderProps) {
-  const [isLoginDropdownOpen, setIsLoginDropdownOpen] = useState(false);
   const pathname = usePathname();
 
   return (
@@ -82,29 +81,18 @@ export default function Header({ isMobileMenuOpen, setIsMobileMenuOpen }: Header
             </Link>
           ))}
 
-          {/* Portal Dropdown */}
-          <div
-            className="relative"
-            onMouseEnter={() => setIsLoginDropdownOpen(true)}
-            onMouseLeave={() => setIsLoginDropdownOpen(false)}
-          >
+          {/* Portal Dropdown — CSS hover for reliability */}
+          <div className="relative group">
             <button
-              className={`flex items-center gap-1 px-3 py-2 text-[11px] font-bold uppercase tracking-wider rounded-lg transition-all ${
-                isLoginDropdownOpen
-                  ? "text-orange-600 bg-stone-50"
-                  : "text-stone-600 hover:text-orange-600"
-              }`}
+              className="flex items-center gap-1 px-3 py-2 text-[11px] font-bold uppercase tracking-wider rounded-lg transition-all text-stone-600 group-hover:text-orange-600 group-hover:bg-stone-50"
             >
               Login Portal
-              <ChevronDown
-                className={`w-3 h-3 transition-transform duration-200 ${
-                  isLoginDropdownOpen ? "rotate-180" : ""
-                }`}
-              />
+              <ChevronDown className="w-3 h-3 transition-transform duration-200 group-hover:rotate-180" />
             </button>
 
-            {isLoginDropdownOpen && (
-              <div className="absolute top-full right-0 w-48 py-2 mt-1 bg-white border border-stone-100 rounded-xl shadow-xl animate-in fade-in slide-in-from-top-2 duration-200">
+            {/* Dropdown — stays visible on hover */}
+            <div className="absolute top-full right-0 pt-2 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50">
+              <div className="w-48 bg-white border border-stone-100 rounded-xl shadow-xl py-2">
                 {portalOptions.map((option) => (
                   <Link
                     key={option.name}
@@ -116,7 +104,7 @@ export default function Header({ isMobileMenuOpen, setIsMobileMenuOpen }: Header
                   </Link>
                 ))}
               </div>
-            )}
+            </div>
           </div>
         </nav>
 

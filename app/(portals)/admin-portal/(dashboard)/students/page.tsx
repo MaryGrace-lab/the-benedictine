@@ -6,6 +6,7 @@
 import { prisma } from "@/lib/prisma";
 import ViewStudentsClient from "./ViewStudentsClient";
 
+export const dynamic = "force-dynamic";
 export default async function ViewStudentsPage() {
   const students = await prisma.student.findMany({
     orderBy: [{ class: "asc" }, { lastName: "asc" }],

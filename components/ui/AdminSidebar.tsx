@@ -12,11 +12,13 @@ import { useState } from "react";
 import {
   LayoutDashboard, Users, UserPlus, Upload, Edit3,
   Calendar, UserCog, Settings, ChevronLeft, Menu,
+  ClipboardCheck,
 } from "lucide-react";
 import LogoutButton from "@/components/ui/LogoutButton";
 
 const links = [
   { href: "/admin-portal/dashboard", icon: LayoutDashboard, label: "Dashboard" },
+  { href: "/admin-portal/admission", icon: ClipboardCheck, label: "Admission" },
   { href: "/admin-portal/students", icon: Users, label: "Students" },
   { href: "/admin-portal/students/create", icon: UserPlus, label: "Add Student" },
   { href: "/admin-portal/results/upload", icon: Upload, label: "Upload Results" },

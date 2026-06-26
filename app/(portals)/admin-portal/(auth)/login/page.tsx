@@ -56,9 +56,9 @@ export default function AdminLoginPage() {
           alt="School Logo"
           width={64}
           height={64}
-          className="mx-auto mb-4 rounded-full"
+          className="mx-auto mb-4 rounded-full w-auto h-auto"
+          style={{ width: 64, height: 64 }}
         />
-
         <h1 className="text-2xl font-bold text-center text-slate-800 mb-2">
           Admin Portal
         </h1>
