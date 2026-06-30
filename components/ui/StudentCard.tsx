@@ -1,3 +1,4 @@
+//components/ui/StudentCard.tsx
 "use client";
 
 import React, { useRef } from "react";

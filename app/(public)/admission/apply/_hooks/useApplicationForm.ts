@@ -1,3 +1,4 @@
+//app/(public)/admission/apply/_hooks/useApplicationForm.ts
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 
@@ -40,22 +41,21 @@ export interface ApplicationFormData {
   specialNeeds: string;
   emergencyMedicalInfo: string;
 
-  // Documents (store file names, not actual files)
+  // Document URLs (from upload)
   documents: {
-    birthCertificate: File | null;
-    passportPhoto: File | null;
-    previousResult: File | null;
-    medicalReport: File | null;
-    recommendationLetter: File | null;
+    birthCertificate: string | null;
+    passportPhoto: string | null;
+    previousResult: string | null;
+    medicalReport: string | null;
+    recommendationLetter: string | null;
   };
 
-  // Step tracking
   currentStep: number;
 }
 
 interface ApplicationFormActions {
-  updateField: (field: keyof ApplicationFormData, value: any) => void;
-  setDocument: (key: keyof ApplicationFormData["documents"], file: File | null) => void;
+  updateField: <K extends keyof ApplicationFormData>(field: K, value: ApplicationFormData[K]) => void;
+  setDocument: (key: keyof ApplicationFormData["documents"], url: string | null) => void;
   setCurrentStep: (step: number) => void;
   nextStep: () => void;
   prevStep: () => void;
@@ -114,11 +114,11 @@ export const useApplicationForm = create<ApplicationFormData & ApplicationFormAc
           [field]: value,
         })),
 
-      setDocument: (key, file) =>
+      setDocument: (key, url) =>
         set((state) => ({
           documents: {
             ...state.documents,
-            [key]: file,
+            [key]: url,
           },
         })),
 
@@ -126,7 +126,7 @@ export const useApplicationForm = create<ApplicationFormData & ApplicationFormAc
 
       nextStep: () => {
         const { currentStep } = get();
-        if (currentStep < 7) set({ currentStep: currentStep + 1 });
+        if (currentStep < 6) set({ currentStep: currentStep + 1 });
       },
 
       prevStep: () => {
@@ -138,6 +138,8 @@ export const useApplicationForm = create<ApplicationFormData & ApplicationFormAc
     }),
     {
       name: "admission-form-storage",
+      // Only persist current step, not personal data
+      partialize: (state) => ({ currentStep: state.currentStep }),
     }
   )
 );

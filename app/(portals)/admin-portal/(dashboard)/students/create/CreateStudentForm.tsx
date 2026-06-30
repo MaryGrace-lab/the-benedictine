@@ -10,8 +10,8 @@ import React, { useState } from "react";
 import { useRouter } from "next/navigation";
 import toast, { Toaster } from "react-hot-toast";
 import StudentCard from "@/components/ui/StudentCard";
+import { Eye, EyeOff } from "lucide-react";
 
-// ── Types ──
 type FormData = {
   firstName: string;
   lastName: string;
@@ -52,14 +52,16 @@ export default function CreateStudentForm() {
   const [createdStudent, setCreatedStudent] = useState<CreatedStudentData>(null);
   const [showCard, setShowCard] = useState(false);
 
-  // Department is only required for SSS 2 and SSS 3
+  // Custom password states
+  const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
+
   const requiresDepartment = form.studentClass === "SSS 2" || form.studentClass === "SSS 3";
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
     setForm((prev) => {
       const updated = { ...prev, [name]: value };
-      // Clear department if class is changed to non-SSS 2/3
       if (name === "studentClass" && value !== "SSS 2" && value !== "SSS 3") {
         updated.department = "";
       }
@@ -71,7 +73,6 @@ export default function CreateStudentForm() {
     e.preventDefault();
     setCreatedStudent(null);
 
-    // Validate department for SSS 2/3
     if (requiresDepartment && !form.department) {
       toast.error("Please select a department for SSS 2/3 students");
       return;
@@ -79,6 +80,12 @@ export default function CreateStudentForm() {
 
     if (!form.firstName || !form.lastName || !form.studentId || !form.studentClass) {
       toast.error("Please fill all required fields");
+      return;
+    }
+
+    // If a custom password is provided, validate it client-side
+    if (password && password.length < 8) {
+      toast.error("Custom password must be at least 8 characters");
       return;
     }
 
@@ -96,6 +103,7 @@ export default function CreateStudentForm() {
           studentType: form.department || undefined,
           guardianName: form.guardianName.trim() || undefined,
           guardianPhone: form.guardianPhone.trim() || undefined,
+          password: password || undefined, // send custom password if provided
         }),
       });
 
@@ -104,6 +112,7 @@ export default function CreateStudentForm() {
       if (res.ok) {
         toast.success("Student created successfully!");
         setCreatedStudent(data);
+        setPassword(""); // clear password field after success
         setForm({
           firstName: "",
           lastName: "",
@@ -127,7 +136,6 @@ export default function CreateStudentForm() {
     <div className="min-h-screen bg-slate-50 p-4 md:p-8">
       <Toaster position="top-center" />
 
-      {/* Student Card Modal */}
       {createdStudent && showCard && (
         <StudentCard
           isOpen={showCard}
@@ -205,10 +213,7 @@ export default function CreateStudentForm() {
               {/* Department — Conditional */}
               {requiresDepartment && (
                 <div className="md:col-span-2 bg-amber-50/50 p-4 border border-amber-200/60 rounded-xl">
-                  <label
-                    htmlFor="department"
-                    className="block text-xs font-bold uppercase tracking-wider text-amber-800 mb-1.5"
-                  >
+                  <label htmlFor="department" className="block text-xs font-bold uppercase tracking-wider text-amber-800 mb-1.5">
                     Department *
                   </label>
                   <select
@@ -227,6 +232,34 @@ export default function CreateStudentForm() {
                   </p>
                 </div>
               )}
+
+              {/* Custom Password (Optional) */}
+              <div className="md:col-span-2">
+                <label htmlFor="password" className="block text-sm font-medium text-slate-600 mb-1">
+                  Password (optional)
+                </label>
+                <div className="relative">
+                  <input
+                    id="password"
+                    type={showPassword ? "text" : "password"}
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    placeholder="Leave blank to auto-generate"
+                    className="w-full p-2.5 pr-10 border rounded-lg outline-none text-sm"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 p-1"
+                    tabIndex={-1}
+                  >
+                    {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                  </button>
+                </div>
+                <p className="text-xs text-slate-400 mt-1">
+                  Min 8 characters, include uppercase & number
+                </p>
+              </div>
 
               {/* Guardian Name */}
               <div>

@@ -10,7 +10,9 @@ import StudentProfileClient from "./StudentProfileClient";
 interface Props {
   params: Promise<{ studentId: string }>;
 }
+
 export const dynamic = "force-dynamic";
+
 export default async function StudentProfilePage({ params }: Props) {
   const { studentId } = await params;
 
@@ -39,7 +41,7 @@ export default async function StudentProfilePage({ params }: Props) {
     },
   });
 
-  const sessionIds: string[] = resultHistory.map((r: { sessionId: string }) => r.sessionId);
+  const sessionIds: string[] = resultHistory.map((r) => r.sessionId);
   
   const resultCounts = await prisma.result.groupBy({
     by: ["sessionId"],
@@ -48,7 +50,7 @@ export default async function StudentProfilePage({ params }: Props) {
   });
 
   const countsMap: Record<string, number> = {};
-  resultCounts.forEach((r: { sessionId: string; _count: { id: number } }) => {
+  resultCounts.forEach((r) => {
     countsMap[r.sessionId] = r._count.id;
   });
 
@@ -59,7 +61,13 @@ export default async function StudentProfilePage({ params }: Props) {
     totalScore: r.totalScore,
     percentageAvg: r.percentageAvg,
     grade: r.percentageAvg
-      ? r.percentageAvg >= 90 ? "A" : r.percentageAvg >= 70 ? "B" : r.percentageAvg >= 50 ? "C" : "F"
+      ? r.percentageAvg >= 90 
+        ? "A" 
+        : r.percentageAvg >= 70 
+        ? "B" 
+        : r.percentageAvg >= 50 
+        ? "C" 
+        : "F"
       : null,
     remark: r.remark,
     subjects: countsMap[r.sessionId] || 0,
@@ -67,7 +75,7 @@ export default async function StudentProfilePage({ params }: Props) {
   }));
 
   const bestPerformance = history.length > 0
-    ? Math.max(...history.map((h: { percentageAvg: number | null }) => h.percentageAvg || 0))
+    ? Math.max(...history.map((h) => h.percentageAvg || 0))
     : 0;
 
   const latestPerformance = history.length > 0 ? history[0].percentageAvg : null;

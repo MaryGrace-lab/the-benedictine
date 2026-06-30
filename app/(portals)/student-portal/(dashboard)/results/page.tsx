@@ -1,9 +1,9 @@
 // app/(portals)/student-portal/(dashboard)/results/page.tsx
-
 // ──────────────────────────────────────────────
 // Student Results Page — Server Component
 // Displays full report card with session selector.
 // Print-friendly with school branding.
+// Mobile responsive.
 // ──────────────────────────────────────────────
 
 import { getStudentFromSession } from "@/lib/jwt";
@@ -11,9 +11,10 @@ import { prisma } from "@/lib/prisma";
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
-import LogoutButton from "@/components/ui/LogoutButton";
 import PrintButton from "@/components/ui/PrintButton";
 import SessionSelector from "./SessionSelector";
+import { FileText } from "lucide-react";
+import type { Rating } from "@prisma/client";
 
 type AvailableSession = {
   id: string;
@@ -23,6 +24,7 @@ type AvailableSession = {
 };
 
 export const dynamic = "force-dynamic";
+
 export default async function StudentResultsPage({
   searchParams,
 }: {
@@ -31,25 +33,35 @@ export default async function StudentResultsPage({
   const sessionStudentId = await getStudentFromSession();
   const params = await searchParams;
 
-  // Auth guard
   if (!sessionStudentId) {
     redirect("/student-portal/login");
   }
 
-  // Get student profile
   const studentProfile = await prisma.student.findUnique({
     where: { studentId: sessionStudentId },
+    select: {
+      id: true,
+      firstName: true,
+      lastName: true,
+      class: true,
+      studentId: true,
+    },
   });
 
   if (!studentProfile) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-slate-50">
-        <p className="text-red-500 font-medium">Student account profile not found.</p>
+      <div className="flex items-center justify-center min-h-[50vh]">
+        <div className="text-center">
+          <FileText size={48} className="mx-auto text-red-300 mb-3" />
+          <p className="text-red-500 font-medium">Student account not found.</p>
+          <Link href="/student-portal/dashboard" className="text-sm text-[#8B5E3C] hover:underline mt-2 inline-block">
+            ← Back to Dashboard
+          </Link>
+        </div>
       </div>
     );
   }
 
-  // Get all sessions that have results for this student
   const availableSessions: AvailableSession[] = await prisma.academicSession.findMany({
     where: {
       resultSummaries: {
@@ -62,20 +74,24 @@ export default async function StudentResultsPage({
 
   if (!availableSessions.length) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-slate-50">
-        <p className="text-slate-500 font-medium">No results available for any session yet.</p>
+      <div className="flex items-center justify-center min-h-[50vh]">
+        <div className="text-center">
+          <FileText size={48} className="mx-auto text-[#8B5E3C]/20 mb-3" />
+          <p className="text-[#8B5E3C]/50 font-medium">No results available yet.</p>
+          <Link href="/student-portal/dashboard" className="text-sm text-[#8B5E3C] hover:underline mt-2 inline-block">
+            ← Back to Dashboard
+          </Link>
+        </div>
       </div>
     );
   }
 
-  // Determine which session to display
   const selectedSessionId = params.session || availableSessions[0].id;
 
   let activeSession = await prisma.academicSession.findUnique({
     where: { id: selectedSessionId },
   });
 
-  // Fallback if selected session is invalid
   if (!activeSession) {
     activeSession = await prisma.academicSession.findUnique({
       where: { id: availableSessions[0].id },
@@ -83,18 +99,17 @@ export default async function StudentResultsPage({
 
     if (!activeSession) {
       return (
-        <div className="min-h-screen flex items-center justify-center bg-slate-50">
-          <p className="text-slate-500 font-medium">Session data unavailable.</p>
+        <div className="flex items-center justify-center min-h-[50vh]">
+          <p className="text-[#8B5E3C]/50 font-medium">Session data unavailable.</p>
         </div>
       );
     }
   }
 
-  // Fetch all result data in parallel
   const [results, socialBehaviour, attendance, resultSummary] = await Promise.all([
     prisma.result.findMany({
       where: { studentId: studentProfile.id, sessionId: activeSession.id },
-      include: { subject: true },
+      include: { subject: { select: { name: true } } },
       orderBy: { subject: { name: "asc" } },
     }),
     prisma.socialBehaviour.findUnique({
@@ -123,45 +138,52 @@ export default async function StudentResultsPage({
     }),
   ]);
 
-  // No result summary = no results for this session
   if (!resultSummary) {
     return (
-      <div className="min-h-screen bg-slate-50 p-4 md:p-8">
-        <div className="max-w-4xl mx-auto">
-          <div className="flex justify-between items-center mb-4 no-print">
-            <SessionSelector sessions={availableSessions} currentSessionId={activeSession.id} />
-            <LogoutButton type="student" />
-          </div>
-          <div className="bg-white rounded-2xl shadow-lg p-10 text-center">
-            <p className="text-slate-500 font-medium">No results compiled for this session yet.</p>
-          </div>
+      <div className="space-y-4">
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 no-print">
+          <SessionSelector sessions={availableSessions} currentSessionId={activeSession.id} />
+          <Link href="/student-portal/dashboard" className="text-sm text-[#8B5E3C] hover:underline">
+            ← Back to Dashboard
+          </Link>
+        </div>
+        <div className="bg-white rounded-2xl border border-[#8B5E3C]/10 p-10 text-center">
+          <FileText size={48} className="mx-auto text-[#8B5E3C]/15 mb-3" />
+          <p className="text-[#8B5E3C]/50 font-medium">No results compiled for this session yet.</p>
         </div>
       </div>
     );
   }
 
-  // ── Render Report Card ──
+  // ── Helper: Get rating value or "—" ──
+  const getRatingDisplay = (rating: Rating | null): string => {
+    if (rating === null) return "—";
+    return rating;
+  };
+
+  // ── Helper: Get number value or "—" ──
+  const getNumberDisplay = (value: number | null): string => {
+    if (value === null) return "—";
+    return String(value);
+  };
+
   return (
-    <div className="min-h-screen bg-slate-50 p-4 md:p-8">
+    <div className="space-y-4">
       {/* Toolbar — hidden when printing */}
-      <div className="max-w-4xl mx-auto mb-4 flex justify-between items-center no-print">
-        <div className="flex items-center gap-4">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 no-print">
+        <div className="flex items-center gap-3">
           <SessionSelector sessions={availableSessions} currentSessionId={activeSession.id} />
           <PrintButton />
-          <Link
-            href="/student-portal/settings"
-            className="text-sm text-slate-600 hover:text-slate-800 font-medium"
-          >
-            � Settings
-          </Link>
         </div>
-        <LogoutButton type="student" />
+        <Link href="/student-portal/dashboard" className="text-sm text-[#8B5E3C] hover:underline">
+          ← Back to Dashboard
+        </Link>
       </div>
 
       {/* Report Card — printable area */}
-      <div className="print-area max-w-4xl mx-auto bg-white rounded-2xl shadow-lg p-6 md:p-10">
+      <div className="print-area bg-white rounded-2xl border border-[#8B5E3C]/10 shadow-sm p-4 sm:p-6 md:p-10">
         {/* Header with Logo */}
-        <div className="text-center mb-8 border-b pb-6">
+        <div className="text-center mb-6 border-b pb-6">
           <Image
             src="/logo.jpg"
             alt="The Benedictine Academy Logo"
@@ -169,16 +191,18 @@ export default async function StudentResultsPage({
             height={80}
             className="mx-auto mb-3 rounded-full"
           />
-          <h1 className="text-xl md:text-2xl font-bold text-slate-900">THE BENEDICTINE ACADEMY</h1>
-          <p className="text-sm text-slate-500">Catholic Education Centre</p>
-          <p className="text-sm text-slate-500">Learning in Wisdom</p>
-          <h2 className="text-lg font-semibold mt-4 text-slate-700">
+          <h1 className="text-lg sm:text-xl md:text-2xl font-bold text-slate-900">
+            THE BENEDICTINE ACADEMY
+          </h1>
+          <p className="text-xs sm:text-sm text-slate-500">Catholic Education Centre</p>
+          <p className="text-xs sm:text-sm text-slate-500">Learning in Wisdom</p>
+          <h2 className="text-base sm:text-lg font-semibold mt-4 text-slate-700">
             Term Examination Result — {activeSession.year} {activeSession.term} Term
           </h2>
         </div>
 
         {/* Student Info */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8 text-sm text-slate-700 border-b pb-6">
+        <div className="grid grid-cols-2 gap-3 mb-6 text-xs sm:text-sm text-slate-700 border-b pb-6">
           <div><span className="font-semibold text-slate-500">Name:</span> {studentProfile.firstName} {studentProfile.lastName}</div>
           <div><span className="font-semibold text-slate-500">Class:</span> {studentProfile.class}</div>
           <div><span className="font-semibold text-slate-500">No. in Class:</span> {resultSummary.noInClass ?? "—"}</div>
@@ -186,35 +210,35 @@ export default async function StudentResultsPage({
         </div>
 
         {/* Subject Scores Table */}
-        <div className="mb-8">
-          <h3 className="font-semibold text-lg mb-3 text-slate-800">Performance in Subjects</h3>
-          <div className="overflow-x-auto rounded-xl border border-slate-200">
-            <table className="w-full text-sm">
+        <div className="mb-6">
+          <h3 className="font-semibold text-base sm:text-lg mb-3 text-slate-800">Performance in Subjects</h3>
+          <div className="overflow-x-auto -mx-4 sm:mx-0 rounded-xl border border-slate-200">
+            <table className="w-full text-xs sm:text-sm min-w-[550px]">
               <thead className="bg-slate-50 text-slate-600 border-b border-slate-200">
                 <tr>
-                  <th className="p-3 text-left font-semibold">Subject</th>
-                  <th className="p-3 text-center font-semibold">1st CAT (20)</th>
-                  <th className="p-3 text-center font-semibold">2nd CAT (20)</th>
-                  <th className="p-3 text-center font-semibold">Exam (60)</th>
-                  <th className="p-3 text-center font-semibold">Total (100)</th>
-                  <th className="p-3 text-center font-semibold">Grade</th>
+                  <th className="p-2 sm:p-3 text-left font-semibold">Subject</th>
+                  <th className="p-2 sm:p-3 text-center font-semibold">1st CAT (20)</th>
+                  <th className="p-2 sm:p-3 text-center font-semibold">2nd CAT (20)</th>
+                  <th className="p-2 sm:p-3 text-center font-semibold">Exam (60)</th>
+                  <th className="p-2 sm:p-3 text-center font-semibold">Total (100)</th>
+                  <th className="p-2 sm:p-3 text-center font-semibold">Grade</th>
                 </tr>
               </thead>
               <tbody className="text-slate-700 divide-y divide-slate-100">
                 {results.map((r) => (
                   <tr key={r.id} className="hover:bg-slate-50/50 transition-colors">
-                    <td className="p-3 font-medium">{r.subject.name}</td>
-                    <td className="p-3 text-center">{r.firstTest ?? "—"}</td>
-                    <td className="p-3 text-center">{r.secondTest ?? "—"}</td>
-                    <td className="p-3 text-center">{r.exam ?? "—"}</td>
-                    <td className="p-3 text-center font-semibold text-slate-900">{r.total ?? "—"}</td>
-                    <td className="p-3 text-center font-bold text-slate-900">{r.grade ?? "—"}</td>
+                    <td className="p-2 sm:p-3 font-medium">{r.subject.name}</td>
+                    <td className="p-2 sm:p-3 text-center">{r.firstTest ?? "—"}</td>
+                    <td className="p-2 sm:p-3 text-center">{r.secondTest ?? "—"}</td>
+                    <td className="p-2 sm:p-3 text-center">{r.exam ?? "—"}</td>
+                    <td className="p-2 sm:p-3 text-center font-semibold text-slate-900">{r.total ?? "—"}</td>
+                    <td className="p-2 sm:p-3 text-center font-bold text-slate-900">{r.grade ?? "—"}</td>
                   </tr>
                 ))}
               </tbody>
             </table>
           </div>
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mt-6 p-4 bg-slate-50 rounded-xl text-sm font-medium text-slate-700">
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-4 mt-4 p-3 sm:p-4 bg-slate-50 rounded-xl text-xs sm:text-sm font-medium text-slate-700">
             <div><span className="text-slate-500">Cumulative:</span> {resultSummary.totalCumulative}</div>
             <div><span className="text-slate-500">Total Score:</span> {resultSummary.totalScore}</div>
             <div><span className="text-slate-500">Average:</span> {resultSummary.percentageAvg}%</div>
@@ -224,77 +248,120 @@ export default async function StudentResultsPage({
 
         {/* Social Behaviour */}
         {socialBehaviour && (
-          <div className="mb-8">
-            <h3 className="font-semibold text-lg mb-3 text-slate-800">Social Behaviour</h3>
-            <div className="overflow-x-auto rounded-xl border border-slate-200">
-              <table className="w-full text-sm">
+          <div className="mb-6">
+            <h3 className="font-semibold text-base sm:text-lg mb-3 text-slate-800">Social Behaviour</h3>
+            <div className="overflow-x-auto -mx-4 sm:mx-0 rounded-xl border border-slate-200">
+              <table className="w-full text-xs sm:text-sm min-w-[400px]">
                 <thead className="bg-slate-50 text-slate-600 border-b border-slate-200">
                   <tr>
-                    <th className="p-3 text-left font-semibold">Trait</th>
-                    <th className="p-3 text-center font-semibold">Rating</th>
+                    <th className="p-2 sm:p-3 text-left font-semibold">Trait</th>
+                    <th className="p-2 sm:p-3 text-center font-semibold">Rating</th>
                   </tr>
                 </thead>
                 <tbody className="text-slate-700 divide-y divide-slate-100">
-                  {[
-                    { key: "obedience", label: "Obedience" },
-                    { key: "honesty", label: "Honesty" },
-                    { key: "responsibility", label: "Responsibility" },
-                    { key: "selfControl", label: "Self-Control" },
-                    { key: "leadership", label: "Leadership" },
-                    { key: "relationshipWithOthers", label: "Relationship with Others" },
-                    { key: "gamesAndSports", label: "Games and Sports" },
-                    { key: "health", label: "Health" },
-                    { key: "neatness", label: "Neatness" },
-                    { key: "manipulativeSkill", label: "Manipulative Skill" },
-                  ].map((trait) => {
-                    const value = (socialBehaviour as unknown as Record<string, string | null>)[trait.key];
-                    return (
-                      <tr key={trait.key} className="hover:bg-slate-50/50 transition-colors">
-                        <td className="p-3 font-medium">{trait.label}</td>
-                        <td className="p-3 text-center font-semibold text-slate-900">
-                          {value ?? "—"}
-                        </td>
-                      </tr>
-                    );
-                  })}
+                  <tr className="hover:bg-slate-50/50 transition-colors">
+                    <td className="p-2 sm:p-3 font-medium">Obedience</td>
+                    <td className="p-2 sm:p-3 text-center font-semibold text-slate-900">
+                      {getRatingDisplay(socialBehaviour.obedience)}
+                    </td>
+                  </tr>
+                  <tr className="hover:bg-slate-50/50 transition-colors">
+                    <td className="p-2 sm:p-3 font-medium">Honesty</td>
+                    <td className="p-2 sm:p-3 text-center font-semibold text-slate-900">
+                      {getRatingDisplay(socialBehaviour.honesty)}
+                    </td>
+                  </tr>
+                  <tr className="hover:bg-slate-50/50 transition-colors">
+                    <td className="p-2 sm:p-3 font-medium">Responsibility</td>
+                    <td className="p-2 sm:p-3 text-center font-semibold text-slate-900">
+                      {getRatingDisplay(socialBehaviour.responsibility)}
+                    </td>
+                  </tr>
+                  <tr className="hover:bg-slate-50/50 transition-colors">
+                    <td className="p-2 sm:p-3 font-medium">Self Control</td>
+                    <td className="p-2 sm:p-3 text-center font-semibold text-slate-900">
+                      {getRatingDisplay(socialBehaviour.selfControl)}
+                    </td>
+                  </tr>
+                  <tr className="hover:bg-slate-50/50 transition-colors">
+                    <td className="p-2 sm:p-3 font-medium">Leadership</td>
+                    <td className="p-2 sm:p-3 text-center font-semibold text-slate-900">
+                      {getRatingDisplay(socialBehaviour.leadership)}
+                    </td>
+                  </tr>
+                  <tr className="hover:bg-slate-50/50 transition-colors">
+                    <td className="p-2 sm:p-3 font-medium">Relationship with Others</td>
+                    <td className="p-2 sm:p-3 text-center font-semibold text-slate-900">
+                      {getRatingDisplay(socialBehaviour.relationshipWithOthers)}
+                    </td>
+                  </tr>
+                  <tr className="hover:bg-slate-50/50 transition-colors">
+                    <td className="p-2 sm:p-3 font-medium">Games and Sports</td>
+                    <td className="p-2 sm:p-3 text-center font-semibold text-slate-900">
+                      {getRatingDisplay(socialBehaviour.gamesAndSports)}
+                    </td>
+                  </tr>
+                  <tr className="hover:bg-slate-50/50 transition-colors">
+                    <td className="p-2 sm:p-3 font-medium">Health</td>
+                    <td className="p-2 sm:p-3 text-center font-semibold text-slate-900">
+                      {getRatingDisplay(socialBehaviour.health)}
+                    </td>
+                  </tr>
+                  <tr className="hover:bg-slate-50/50 transition-colors">
+                    <td className="p-2 sm:p-3 font-medium">Neatness</td>
+                    <td className="p-2 sm:p-3 text-center font-semibold text-slate-900">
+                      {getRatingDisplay(socialBehaviour.neatness)}
+                    </td>
+                  </tr>
+                  <tr className="hover:bg-slate-50/50 transition-colors">
+                    <td className="p-2 sm:p-3 font-medium">Manipulative Skill</td>
+                    <td className="p-2 sm:p-3 text-center font-semibold text-slate-900">
+                      {getRatingDisplay(socialBehaviour.manipulativeSkill)}
+                    </td>
+                  </tr>
                 </tbody>
               </table>
             </div>
-            <div className="text-sm mt-3 p-3 bg-slate-50 rounded-xl text-slate-700">
-              <span className="font-semibold text-slate-500">Behaviour Remark:</span> {socialBehaviour.remark}
+            <div className="text-xs sm:text-sm mt-3 p-3 bg-slate-50 rounded-xl text-slate-700">
+              <span className="font-semibold text-slate-500">Behaviour Remark:</span> {socialBehaviour.remark || "—"}
             </div>
           </div>
         )}
 
         {/* Attendance */}
         {attendance && (
-          <div className="mb-8">
-            <h3 className="font-semibold text-lg mb-3 text-slate-800">Attendance</h3>
-            <div className="overflow-x-auto rounded-xl border border-slate-200">
-              <table className="w-full text-sm">
+          <div className="mb-6">
+            <h3 className="font-semibold text-base sm:text-lg mb-3 text-slate-800">Attendance</h3>
+            <div className="overflow-x-auto -mx-4 sm:mx-0 rounded-xl border border-slate-200">
+              <table className="w-full text-xs sm:text-sm min-w-[400px]">
                 <thead className="bg-slate-50 text-slate-600 border-b border-slate-200">
                   <tr>
-                    <th className="p-3 text-left font-semibold">Category</th>
-                    <th className="p-3 text-center font-semibold">Times Opened</th>
-                    <th className="p-3 text-center font-semibold">Times Present</th>
+                    <th className="p-2 sm:p-3 text-left font-semibold">Category</th>
+                    <th className="p-2 sm:p-3 text-center font-semibold">Times Opened</th>
+                    <th className="p-2 sm:p-3 text-center font-semibold">Times Present</th>
                   </tr>
                 </thead>
                 <tbody className="text-slate-700 divide-y divide-slate-100">
-                  {[
-                    ["School Sessions", "schoolOpened", "schoolPresent"],
-                    ["Sports / Athletics", "sportOpened", "sportPresent"],
-                    ["Other Gatherings", "othersOpened", "othersPresent"],
-                    ["Organized Activities", "organizedActivitiesOpened", "organizedActivitiesPresent"],
-                  ].map(([label, opened, present]) => {
-                    const attend = attendance as unknown as Record<string, number | null>;
-                    return (
-                      <tr key={label} className="hover:bg-slate-50/50 transition-colors">
-                        <td className="p-3 font-medium">{label}</td>
-                        <td className="p-3 text-center">{attend[opened] ?? "—"}</td>
-                        <td className="p-3 text-center">{attend[present] ?? "—"}</td>
-                      </tr>
-                    );
-                  })}
+                  <tr className="hover:bg-slate-50/50 transition-colors">
+                    <td className="p-2 sm:p-3 font-medium">School Sessions</td>
+                    <td className="p-2 sm:p-3 text-center">{getNumberDisplay(attendance.schoolOpened)}</td>
+                    <td className="p-2 sm:p-3 text-center">{getNumberDisplay(attendance.schoolPresent)}</td>
+                  </tr>
+                  <tr className="hover:bg-slate-50/50 transition-colors">
+                    <td className="p-2 sm:p-3 font-medium">Sports / Athletics</td>
+                    <td className="p-2 sm:p-3 text-center">{getNumberDisplay(attendance.sportOpened)}</td>
+                    <td className="p-2 sm:p-3 text-center">{getNumberDisplay(attendance.sportPresent)}</td>
+                  </tr>
+                  <tr className="hover:bg-slate-50/50 transition-colors">
+                    <td className="p-2 sm:p-3 font-medium">Other Gatherings</td>
+                    <td className="p-2 sm:p-3 text-center">{getNumberDisplay(attendance.othersOpened)}</td>
+                    <td className="p-2 sm:p-3 text-center">{getNumberDisplay(attendance.othersPresent)}</td>
+                  </tr>
+                  <tr className="hover:bg-slate-50/50 transition-colors">
+                    <td className="p-2 sm:p-3 font-medium">Organized Activities</td>
+                    <td className="p-2 sm:p-3 text-center">{getNumberDisplay(attendance.organizedActivitiesOpened)}</td>
+                    <td className="p-2 sm:p-3 text-center">{getNumberDisplay(attendance.organizedActivitiesPresent)}</td>
+                  </tr>
                 </tbody>
               </table>
             </div>
@@ -302,19 +369,23 @@ export default async function StudentResultsPage({
         )}
 
         {/* Comments & Fees */}
-        <div className="text-sm space-y-3 border-t pt-6 text-slate-700">
+        <div className="text-xs sm:text-sm space-y-3 border-t pt-6 text-slate-700">
           <div className="p-3 bg-slate-50 rounded-xl">
-            <span className="font-semibold text-slate-600">Class Teacher's Comment:</span> {resultSummary.classTeacherComment || "—"}
+            <span className="font-semibold text-slate-600">Class Teacher&apos;s Comment:</span>{" "}
+            {resultSummary.classTeacherComment || "—"}
           </div>
           <div className="p-3 bg-slate-50 rounded-xl">
-            <span className="font-semibold text-slate-600">Head Teacher's Comment:</span> {resultSummary.headTeacherComment || "—"}
+            <span className="font-semibold text-slate-600">Head Teacher&apos;s Comment:</span>{" "}
+            {resultSummary.headTeacherComment || "—"}
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div className="p-3 bg-slate-50 rounded-xl">
-              <span className="font-semibold text-slate-600">Next Term Begins:</span> {resultSummary.nextTermBegins || "—"}
+              <span className="font-semibold text-slate-600">Next Term Begins:</span>{" "}
+              {resultSummary.nextTermBegins || "—"}
             </div>
             <div className="p-3 bg-slate-50 rounded-xl">
-              <span className="font-semibold text-slate-600">Next Term Fees:</span> {resultSummary.nextTermFees || "—"}
+              <span className="font-semibold text-slate-600">Next Term Fees:</span>{" "}
+              {resultSummary.nextTermFees || "—"}
             </div>
           </div>
         </div>

@@ -1,3 +1,4 @@
+//app/(public)/admission/page.tsx
 import type { Metadata } from "next";
 import {
   AdmissionHero,

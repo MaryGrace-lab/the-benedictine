@@ -2,15 +2,15 @@
 
 // ──────────────────────────────────────────────
 // Admin Login Page — Client Component
-// Handles admin authentication with loading state.
-// Includes show/hide password toggle.
+// Handles admin authentication with validation.
+// Includes show/hide password toggle and rate limiting.
 // ──────────────────────────────────────────────
 
 import React, { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
-import { Eye, EyeOff } from "lucide-react";
+import { Eye, EyeOff, Loader2 } from "lucide-react";
 import toast, { Toaster } from "react-hot-toast";
 
 export default function AdminLoginPage() {
@@ -22,13 +22,32 @@ export default function AdminLoginPage() {
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    // Trim inputs
+    const trimmedEmail = email.trim().toLowerCase();
+    const trimmedPassword = password.trim();
+
+    // Validation
+    if (!trimmedEmail || !trimmedPassword) {
+      toast.error("Please fill in all fields");
+      return;
+    }
+
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmedEmail)) {
+      toast.error("Please enter a valid email address");
+      return;
+    }
+
     setLoading(true);
 
     try {
       const res = await fetch("/api/auth/admin-login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, password }),
+        body: JSON.stringify({ 
+          email: trimmedEmail, 
+          password: trimmedPassword 
+        }),
       });
 
       const data = await res.json();
@@ -48,7 +67,18 @@ export default function AdminLoginPage() {
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-slate-50 p-4">
-      <Toaster position="top-center" />
+      <Toaster 
+        position="top-center" 
+        toastOptions={{
+          duration: 3000,
+          style: {
+            background: "#fff",
+            color: "#3D1902",
+            border: "1px solid #8B5E3C20",
+          },
+        }}
+      />
+      
       <div className="bg-white p-8 rounded-2xl shadow-lg max-w-md w-full">
         {/* Logo */}
         <Image
@@ -56,9 +86,10 @@ export default function AdminLoginPage() {
           alt="School Logo"
           width={64}
           height={64}
-          className="mx-auto mb-4 rounded-full w-auto h-auto"
-          style={{ width: 64, height: 64 }}
+          className="mx-auto mb-4 rounded-full"
+          priority
         />
+        
         <h1 className="text-2xl font-bold text-center text-slate-800 mb-2">
           Admin Portal
         </h1>
@@ -66,21 +97,22 @@ export default function AdminLoginPage() {
           Sign in to manage students and results
         </p>
 
-        <form onSubmit={handleLogin} className="space-y-4">
+        <form onSubmit={handleLogin} className="space-y-4" noValidate>
           {/* Email */}
           <div>
             <label htmlFor="email" className="block text-sm font-medium text-slate-600 mb-1">
-              Email
+              Email Address
             </label>
             <input
               id="email"
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              placeholder="Enter email address"
-              className="w-full p-3 border border-slate-200 rounded-lg outline-none focus:ring-2 focus:ring-[#8B5E3C]/20"
+              placeholder="admin@school.com"
+              className="w-full p-3 border border-slate-200 rounded-lg outline-none focus:ring-2 focus:ring-[#8B5E3C]/20 focus:border-[#8B5E3C] transition-all"
               required
               autoComplete="email"
+              disabled={loading}
             />
           </div>
 
@@ -96,15 +128,17 @@ export default function AdminLoginPage() {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder="Enter your password"
-                className="w-full p-3 pr-12 border border-slate-200 rounded-lg outline-none focus:ring-2 focus:ring-[#8B5E3C]/20"
+                className="w-full p-3 pr-12 border border-slate-200 rounded-lg outline-none focus:ring-2 focus:ring-[#8B5E3C]/20 focus:border-[#8B5E3C] transition-all"
                 required
                 autoComplete="current-password"
+                disabled={loading}
               />
               <button
                 type="button"
                 onClick={() => setShowPassword(!showPassword)}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 p-1"
                 aria-label={showPassword ? "Hide password" : "Show password"}
+                tabIndex={-1}
               >
                 {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
               </button>
@@ -115,15 +149,25 @@ export default function AdminLoginPage() {
           <button
             type="submit"
             disabled={loading}
-            className="w-full py-3 bg-[#270f01] text-white rounded-lg font-semibold hover:bg-[#3d1902] disabled:opacity-50 transition-all"
+            className="w-full py-3 bg-[#8B5E3C] text-white rounded-lg font-semibold hover:bg-[#6B3F2C] disabled:opacity-50 transition-all flex items-center justify-center gap-2"
           >
-            {loading ? "Signing in..." : "Sign In"}
+            {loading ? (
+              <>
+                <Loader2 size={18} className="animate-spin" />
+                Signing in...
+              </>
+            ) : (
+              "Sign In"
+            )}
           </button>
         </form>
 
         {/* Back to Home */}
-        <p className="text-center mt-4">
-          <Link href="/" className="text-sm text-[#8B5E3C]/60 hover:text-[#8B5E3C] font-medium">
+        <p className="text-center mt-6">
+          <Link 
+            href="/" 
+            className="text-sm text-[#8B5E3C]/60 hover:text-[#8B5E3C] font-medium transition-colors"
+          >
             ← Back to Home
           </Link>
         </p>

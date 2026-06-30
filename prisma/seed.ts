@@ -8,7 +8,7 @@
 
 // prisma/seed.ts
 import { PrismaClient, Role } from "@prisma/client";
-import * as bcrypt from "bcrypt";
+import bcrypt from "bcryptjs";
 import { prisma } from "../lib/prisma";
 import { generateInitialStudentPassword, getPlaintextStudentPassword } from "../lib/auth";
 

@@ -1,3 +1,4 @@
+// lib/supabase-storage.ts
 import { createClient } from "@supabase/supabase-js";
 
 const supabase = createClient(
@@ -35,7 +36,7 @@ export async function uploadToStorage(
     const safeName = file.name.replace(/[^a-zA-Z0-9.-]/g, "_");
     const fileName = `${folder}/${timestamp}-${safeName}`;
 
-    const { data, error } = await supabase.storage
+    const { error } = await supabase.storage
       .from("admission-documents")
       .upload(fileName, file, {
         cacheControl: "3600",
@@ -44,11 +45,9 @@ export async function uploadToStorage(
 
     if (error) throw error;
 
-    const { data: urlData } = supabase.storage
-      .from("admission-documents")
-      .getPublicUrl(fileName);
-
-    return { success: true, filePath: urlData.publicUrl };
+    // Return the relative path (bucket folder + filename) so the admin proxy can resolve it.
+    // Example: "admissions/1680000000-birth_cert.pdf"
+    return { success: true, filePath: fileName };
   } catch (error) {
     console.error("Upload error:", error);
     return { success: false, error: "Failed to upload file" };

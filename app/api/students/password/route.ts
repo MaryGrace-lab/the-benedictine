@@ -2,7 +2,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getAdminFromSession } from "@/lib/jwt";
-import { getPlaintextStudentPassword } from "@/lib/auth";
+import { generateInitialStudentPassword } from "@/lib/auth";
 
 export async function POST(req: Request) {
   try {
@@ -27,16 +27,32 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Student not found" }, { status: 404 });
     }
 
-    const plainPassword = getPlaintextStudentPassword(student.lastName, student.studentId);
+    // Generate a brand new random password instead of revealing the old one
+    const { hashed, plaintext } = await generateInitialStudentPassword(
+      student.lastName,
+      student.studentId
+    );
+
+    // Update the student's password in the database
+    await prisma.student.update({
+      where: { studentId },
+      data: {
+        password: hashed,
+        passwordResetRequired: true,
+      },
+    });
 
     return NextResponse.json({
       studentId: student.studentId,
       name: `${student.firstName} ${student.lastName}`,
-      password: plainPassword,
-      note: "This is the auto-generated password. Student may have changed it.",
+      password: plaintext,
+      note: "A new temporary password has been generated. The student must change it after logging in.",
     });
   } catch (error) {
     console.error("Password retrieval error:", error);
-    return NextResponse.json({ error: "Failed to retrieve password" }, { status: 500 });
+    return NextResponse.json(
+      { error: "Failed to reset password" },
+      { status: 500 }
+    );
   }
 }

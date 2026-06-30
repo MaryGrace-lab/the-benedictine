@@ -2,6 +2,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getAdminFromSession } from "@/lib/jwt";
+import { Prisma } from "@prisma/client";
 
 export async function PUT(req: Request) {
   try {
@@ -17,16 +18,18 @@ export async function PUT(req: Request) {
       lastName,
       studentId,
       studentClass,
-      studentType, // ← ADDED
+      studentType,
       guardianName,
       guardianPhone,
     } = await req.json();
 
     if (!originalStudentId) {
-      return NextResponse.json({ error: "Original Student ID is required" }, { status: 400 });
+      return NextResponse.json(
+        { error: "Original Student ID is required" },
+        { status: 400 }
+      );
     }
 
-    // Check if student exists
     const existing = await prisma.student.findUnique({
       where: { studentId: originalStudentId },
     });
@@ -35,7 +38,6 @@ export async function PUT(req: Request) {
       return NextResponse.json({ error: "Student not found" }, { status: 404 });
     }
 
-    // If studentId is being changed, check it doesn't conflict
     if (studentId && studentId !== originalStudentId) {
       const duplicate = await prisma.student.findUnique({
         where: { studentId },
@@ -48,17 +50,19 @@ export async function PUT(req: Request) {
       }
     }
 
+    const updateData: Prisma.StudentUpdateInput = {
+      studentId: studentId?.trim() || existing.studentId,
+      firstName: firstName?.trim() || existing.firstName,
+      lastName: lastName?.trim() || existing.lastName,
+      class: studentClass?.trim() || existing.class,
+      studentType: studentType !== undefined ? studentType : existing.studentType,
+      guardianName: guardianName?.trim() ?? existing.guardianName,
+      guardianPhone: guardianPhone?.trim() ?? existing.guardianPhone,
+    };
+
     const updated = await prisma.student.update({
       where: { studentId: originalStudentId },
-      data: {
-        studentId: studentId?.trim() || existing.studentId,
-        firstName: firstName?.trim() || existing.firstName,
-        lastName: lastName?.trim() || existing.lastName,
-        class: studentClass?.trim() || existing.class,
-        studentType: studentType !== undefined ? studentType : existing.studentType, // ← ADDED
-        guardianName: guardianName?.trim() ?? existing.guardianName,
-        guardianPhone: guardianPhone?.trim() ?? existing.guardianPhone,
-      } as any,
+      data: updateData,
     });
 
     return NextResponse.json({
@@ -69,7 +73,7 @@ export async function PUT(req: Request) {
         firstName: updated.firstName,
         lastName: updated.lastName,
         class: updated.class,
-        studentType: updated.studentType, // ← ADDED to response
+        studentType: updated.studentType,
         guardianName: updated.guardianName,
         guardianPhone: updated.guardianPhone,
       },
@@ -82,6 +86,9 @@ export async function PUT(req: Request) {
         { status: 409 }
       );
     }
-    return NextResponse.json({ error: "Failed to update student" }, { status: 500 });
+    return NextResponse.json(
+      { error: "Failed to update student" },
+      { status: 500 }
+    );
   }
 }

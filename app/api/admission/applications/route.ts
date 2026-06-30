@@ -1,5 +1,16 @@
+//app/api/admission/applications/route.ts
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { getAdminFromSession } from "@/lib/jwt";
+import { z } from "zod";
+
+// Validation for public tracking
+const TrackingSchema = z.object({
+  email: z.string().email().optional(),
+  registrationNumber: z.string().optional(),
+}).refine((data) => data.email || data.registrationNumber, {
+  message: "Email or Registration Number is required",
+});
 
 export async function GET(request: NextRequest) {
   try {
@@ -7,18 +18,20 @@ export async function GET(request: NextRequest) {
     const email = searchParams.get("email");
     const registrationNumber = searchParams.get("registrationNumber");
 
-    // Admin: list all applications
-    const page = parseInt(searchParams.get("page") || "1");
-    const limit = parseInt(searchParams.get("limit") || "20");
-    const status = searchParams.get("status");
-    const search = searchParams.get("search");
-    const applyingClass = searchParams.get("class");
-
-    // If email or registrationNumber provided, return single application (public tracking)
+    // PUBLIC: Track single application by email or registration number
     if (email || registrationNumber) {
+      const trackingValidation = TrackingSchema.safeParse({ email, registrationNumber });
+      
+      if (!trackingValidation.success) {
+        return NextResponse.json(
+          { error: "Email or Registration Number is required" },
+          { status: 400 }
+        );
+      }
+
       const where = registrationNumber
-        ? { registrationNumber }
-        : { email: email! };
+        ? { registrationNumber: registrationNumber.trim() }
+        : { email: email!.trim().toLowerCase() };
 
       const application = await prisma.admissionApplication.findFirst({
         where,
@@ -36,7 +49,7 @@ export async function GET(request: NextRequest) {
 
       if (!application) {
         return NextResponse.json(
-          { error: "Application not found" },
+          { error: "Application not found. Please check your details." },
           { status: 404 }
         );
       }
@@ -44,8 +57,22 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ application });
     }
 
-    // Admin: build filters
-    const where: any = {};
+    // ADMIN: List all applications (requires authentication)
+    const adminSession = await getAdminFromSession();
+    if (!adminSession || adminSession.role !== "ADMIN") {
+      return NextResponse.json(
+        { error: "Admin access required to view all applications" },
+        { status: 401 }
+      );
+    }
+
+    const page = Math.max(1, parseInt(searchParams.get("page") || "1"));
+    const limit = Math.min(50, Math.max(1, parseInt(searchParams.get("limit") || "20")));
+    const status = searchParams.get("status");
+    const search = searchParams.get("search");
+    const applyingClass = searchParams.get("class");
+
+    const where: Record<string, unknown> = {};
 
     if (status && status !== "ALL") {
       where.status = status;

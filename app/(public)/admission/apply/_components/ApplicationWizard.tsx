@@ -18,6 +18,7 @@ import {
   Loader2,
   CheckCircle2,
   Mail,
+  Search,
 } from "lucide-react";
 import StepPersonalInfo from "./StepPersonalInfo";
 import StepParentInfo from "./StepParentInfo";
@@ -26,13 +27,18 @@ import StepMedicalInfo from "./StepMedicalInfo";
 import StepDocuments from "./StepDocuments";
 import StepReview from "./StepReview";
 import Link from "next/link";
-import { Search } from "lucide-react";
+import {
+  personalInfoSchema,
+  parentInfoSchema,
+  academicInfoSchema,
+  medicalInfoSchema,
+} from "../_schema/applicationSchema";
 
 const steps = [
-  { number: 1, title: "Personal Info", icon: User },
-  { number: 2, title: "Parent Info", icon: Users },
-  { number: 3, title: "Academic", icon: GraduationCap },
-  { number: 4, title: "Medical", icon: Heart },
+  { number: 1, title: "Personal Info", icon: User, schema: personalInfoSchema },
+  { number: 2, title: "Parent Info", icon: Users, schema: parentInfoSchema },
+  { number: 3, title: "Academic", icon: GraduationCap, schema: academicInfoSchema },
+  { number: 4, title: "Medical", icon: Heart, schema: medicalInfoSchema },
   { number: 5, title: "Documents", icon: Upload },
   { number: 6, title: "Review", icon: ClipboardCheck },
 ];
@@ -44,8 +50,81 @@ export default function ApplicationWizard() {
   const [submitted, setSubmitted] = useState(false);
   const [registrationNumber, setRegistrationNumber] = useState("");
   const [error, setError] = useState("");
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
 
   const progress = (currentStep / 6) * 100;
+
+  // Build validation data for a specific step
+  const buildStepData = (step: number, data: any) => {
+    switch (step) {
+      case 1:
+        return {
+          surname: data.surname,
+          firstName: data.firstName,
+          middleName: data.middleName || undefined,
+          gender: data.gender,
+          dateOfBirth: data.dateOfBirth,
+          placeOfBirth: data.placeOfBirth,
+          nationality: data.nationality,
+          stateOfOrigin: data.stateOfOrigin,
+          lga: data.lga,
+          religion: data.religion,
+          bloodGroup: data.bloodGroup || undefined,
+          genotype: data.genotype || undefined,
+        };
+      case 2:
+        return {
+          fatherName: data.fatherName,
+          motherName: data.motherName,
+          guardianName: data.guardianName || undefined,
+          occupation: data.occupation,
+          email: data.email,
+          phoneNumber: data.phoneNumber,
+          alternatePhone: data.alternatePhone || undefined,
+          residentialAddress: data.residentialAddress,
+          emergencyContact: data.emergencyContact,
+          emergencyPhone: data.emergencyPhone,
+        };
+      case 3:
+        return {
+          previousSchool: data.previousSchool || undefined,
+          previousClass: data.previousClass || undefined,
+          applyingClass: data.applyingClass,
+          session: data.session,
+        };
+      case 4:
+        return {
+          allergies: data.allergies || undefined,
+          medicalConditions: data.medicalConditions || undefined,
+          specialNeeds: data.specialNeeds || undefined,
+          emergencyMedicalInfo: data.emergencyMedicalInfo || undefined,
+        };
+      default:
+        return {};
+    }
+  };
+
+  const handleNext = () => {
+    const stepSchema = steps.find((s) => s.number === currentStep)?.schema;
+    if (!stepSchema) {
+      nextStep();
+      return;
+    }
+
+    const data = buildStepData(currentStep, formData);
+    const result = stepSchema.safeParse(data);
+    if (!result.success) {
+      const errors: Record<string, string> = {};
+      result.error.issues.forEach((issue) => {
+        const field = issue.path.join(".");
+        errors[field] = issue.message;
+      });
+      setFieldErrors(errors);
+      return;
+    }
+    setFieldErrors({});
+    nextStep();
+  };
 
   const handleSubmit = async () => {
     setSubmitting(true);
@@ -107,18 +186,25 @@ export default function ApplicationWizard() {
   };
 
   const renderStep = () => {
+    const props = { errors: fieldErrors };
     switch (currentStep) {
-      case 1: return <StepPersonalInfo />;
-      case 2: return <StepParentInfo />;
-      case 3: return <StepAcademicInfo />;
-      case 4: return <StepMedicalInfo />;
-      case 5: return <StepDocuments />;
-      case 6: return <StepReview />;
-      default: return null;
+      case 1:
+        return <StepPersonalInfo {...props} />;
+      case 2:
+        return <StepParentInfo {...props} />;
+      case 3:
+        return <StepAcademicInfo {...props} />;
+      case 4:
+        return <StepMedicalInfo {...props} />;
+      case 5:
+        return <StepDocuments />;
+      case 6:
+        return <StepReview />;
+      default:
+        return null;
     }
   };
 
-  // Success screen
   if (submitted) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-gray-50 px-4 dark:bg-gray-900">
@@ -136,7 +222,6 @@ export default function ApplicationWizard() {
           <p className="mt-3 text-gray-600">
             Your application has been received and is being processed.
           </p>
-
           <div className="mt-6 rounded-xl bg-white p-6 shadow-sm dark:bg-gray-950">
             <p className="text-sm text-gray-500">Registration Number</p>
             <p className="mt-1 font-mono text-xl font-bold text-[#1B3A5C]">
@@ -146,30 +231,27 @@ export default function ApplicationWizard() {
               Please save this number for future reference.
             </p>
           </div>
-
           <div className="mt-6 flex items-center justify-center gap-2 text-sm text-gray-500">
             <Mail className="h-4 w-4" />
             A confirmation email has been sent to your email address.
           </div>
-
-<div className="mt-6 rounded-lg bg-blue-50 p-4 text-sm text-blue-700 dark:bg-blue-950/30 dark:text-blue-400">
-  <p className="font-medium">What happens next?</p>
-  <ul className="mt-2 list-inside list-disc space-y-1">
-    <li>Your application will be reviewed within <strong>2-7 working days</strong></li>
-    <li>All updates will be sent to your email address</li>
-    <li>You can track your application status anytime</li>
-  </ul>
-</div>
-
-<div className="mt-4">
-  <Link
-    href="/admission/track"
-    className="inline-flex items-center text-sm font-medium text-[#1B3A5C] hover:underline"
-  >
-    <Search className="mr-1 h-4 w-4" />
-    Track Your Application
-  </Link>
-</div>
+          <div className="mt-6 rounded-lg bg-blue-50 p-4 text-sm text-blue-700 dark:bg-blue-950/30 dark:text-blue-400">
+            <p className="font-medium">What happens next?</p>
+            <ul className="mt-2 list-inside list-disc space-y-1">
+              <li>Your application will be reviewed within <strong>2-7 working days</strong></li>
+              <li>All updates will be sent to your email address</li>
+              <li>You can track your application status anytime</li>
+            </ul>
+          </div>
+          <div className="mt-4">
+            <Link
+              href="/admission/track"
+              className="inline-flex items-center text-sm font-medium text-[#1B3A5C] hover:underline"
+            >
+              <Search className="mr-1 h-4 w-4" />
+              Track Your Application
+            </Link>
+          </div>
         </motion.div>
       </div>
     );
@@ -178,7 +260,6 @@ export default function ApplicationWizard() {
   return (
     <div className="min-h-screen bg-gray-50 py-10 dark:bg-gray-900">
       <div className="mx-auto max-w-3xl px-4 sm:px-6">
-        {/* Header */}
         <div className="mb-8 text-center">
           <h1 className="text-2xl font-bold text-[#1B3A5C] sm:text-3xl">
             Admission Application
@@ -188,18 +269,15 @@ export default function ApplicationWizard() {
           </p>
         </div>
 
-        {/* Progress Bar */}
         <div className="mb-2">
           <Progress value={progress} className="h-2" />
         </div>
 
-        {/* Step Indicators */}
         <div className="mb-8 flex items-center justify-between">
-          {steps.map((step, index) => {
+          {steps.map((step) => {
             const Icon = step.icon;
             const isActive = currentStep === step.number;
             const isCompleted = currentStep > step.number;
-
             return (
               <div key={step.number} className="flex flex-col items-center gap-1">
                 <div
@@ -229,14 +307,12 @@ export default function ApplicationWizard() {
           })}
         </div>
 
-        {/* Error message */}
         {error && (
           <div className="mb-4 rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-600">
             {error}
           </div>
         )}
 
-        {/* Step Content */}
         <div className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm dark:border-gray-800 dark:bg-gray-950 sm:p-8">
           <AnimatePresence mode="wait">
             <motion.div
@@ -251,7 +327,6 @@ export default function ApplicationWizard() {
           </AnimatePresence>
         </div>
 
-        {/* Navigation Buttons */}
         <div className="mt-6 flex items-center justify-between">
           <Button
             variant="outline"
@@ -264,10 +339,7 @@ export default function ApplicationWizard() {
           </Button>
 
           {currentStep < 6 && (
-            <Button
-              onClick={nextStep}
-              className="bg-[#1B3A5C] hover:bg-[#1F4D7B]"
-            >
+            <Button onClick={handleNext} className="bg-[#1B3A5C] hover:bg-[#1F4D7B]">
               Save & Continue
               <ArrowRight className="ml-2 h-4 w-4" />
             </Button>

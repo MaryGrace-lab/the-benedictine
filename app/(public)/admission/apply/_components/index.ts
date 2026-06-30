@@ -1,3 +1,4 @@
+//app/(public)/admission/apply/_components/index.ts
 export { default as ApplicationWizard } from "./ApplicationWizard";
 export { default as StepPersonalInfo } from "./StepPersonalInfo";
 export { default as StepParentInfo } from "./StepParentInfo";

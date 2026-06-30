@@ -1,55 +1,73 @@
+//app/(public)/admission/apply/_components/StepDocuments.tsx
 "use client";
 
 import { useState } from "react";
 import { useApplicationForm } from "../_hooks/useApplicationForm";
 import { Label } from "@/components/ui/label";
-import { Upload, FileText, X, Loader2, CheckCircle2 } from "lucide-react";
+import { Upload, FileText, X, Loader2, CheckCircle2, AlertCircle } from "lucide-react";
 
 const documentFields = [
   {
     key: "birthCertificate" as const,
     label: "Birth Certificate",
     accept: ".pdf,.jpg,.jpeg,.png",
+    required: true,
   },
   {
     key: "passportPhoto" as const,
     label: "Passport Photograph",
     accept: ".jpg,.jpeg,.png",
+    required: true,
   },
   {
     key: "previousResult" as const,
     label: "Previous Academic Results",
     accept: ".pdf,.jpg,.jpeg,.png,.docx",
+    required: true,
   },
   {
     key: "medicalReport" as const,
     label: "Medical Report",
     accept: ".pdf,.jpg,.jpeg,.png",
+    required: false,
   },
-  {
-    key: "recommendationLetter" as const,
-    label: "Recommendation Letter",
-    accept: ".pdf,.docx",
-  },
+
 ];
 
 export default function StepDocuments() {
   const { documents, setDocument } = useApplicationForm();
   const [uploading, setUploading] = useState<Record<string, boolean>>({});
-  const [uploaded, setUploaded] = useState<Record<string, string | null>>({});
+  const [fileNames, setFileNames] = useState<Record<string, string | null>>({});
+  const [uploadErrors, setUploadErrors] = useState<Record<string, string>>({});
 
   const handleFileChange = async (
     key: (typeof documentFields)[number]["key"],
     file: File | null
   ) => {
+    // Clear previous errors
+    setUploadErrors((prev) => {
+      const updated = { ...prev };
+      delete updated[key];
+      return updated;
+    });
+
     if (!file) {
       setDocument(key, null);
-      setUploaded((prev) => ({ ...prev, [key]: null }));
+      setFileNames((prev) => ({ ...prev, [key]: null }));
       return;
     }
 
-    // Store file reference locally first
-    setDocument(key, file);
+    // Validate file size (5MB max)
+    if (file.size > 5 * 1024 * 1024) {
+      setUploadErrors((prev) => ({
+        ...prev,
+        [key]: "File must be less than 5MB",
+      }));
+      return;
+    }
+
+    // Store file name for display
+    setFileNames((prev) => ({ ...prev, [key]: file.name }));
 
     // Upload to server
     setUploading((prev) => ({ ...prev, [key]: true }));
@@ -67,46 +85,69 @@ export default function StepDocuments() {
       const data = await response.json();
 
       if (data.success) {
-        setUploaded((prev) => ({ ...prev, [key]: data.filePath }));
+        // Store the URL/path from the server
+        setDocument(key, data.filePath);
       } else {
-        console.error("Upload failed:", data.error);
         setDocument(key, null);
-        alert(`Upload failed: ${data.error}`);
+        setFileNames((prev) => ({ ...prev, [key]: null }));
+        setUploadErrors((prev) => ({
+          ...prev,
+          [key]: data.error || "Upload failed",
+        }));
       }
-    } catch (error) {
-      console.error("Upload error:", error);
+    } catch {
       setDocument(key, null);
-      alert("Upload failed. Please try again.");
+      setFileNames((prev) => ({ ...prev, [key]: null }));
+      setUploadErrors((prev) => ({
+        ...prev,
+        [key]: "Network error. Please try again.",
+      }));
     } finally {
       setUploading((prev) => ({ ...prev, [key]: false }));
     }
   };
 
+  const getFileDisplayName = (key: (typeof documentFields)[number]["key"]) => {
+    const url = documents[key];
+    const name = fileNames[key];
+    
+    if (url) {
+      // Extract filename from URL if available
+      const urlParts = url.split("/");
+      return urlParts[urlParts.length - 1] || "Uploaded";
+    }
+    
+    return name || null;
+  };
+
   return (
     <div>
-      <h2 className="mb-6 text-xl font-bold text-[#1B3A5C]">
+      <h2 className="mb-2 text-xl font-bold text-[#1B3A5C]">
         Document Upload
       </h2>
       <p className="mb-6 text-sm text-gray-500">
-        Upload clear copies of all required documents. Accepted formats: PDF,
+        Upload clear copies of required documents. Accepted formats: PDF,
         JPG, PNG, DOCX. Max size: 5MB per file.
       </p>
 
       <div className="space-y-4">
         {documentFields.map((doc) => {
-          const file = documents[doc.key];
           const isUploading = uploading[doc.key];
-          const isUploaded = uploaded[doc.key];
+          const isUploaded = !!documents[doc.key];
+          const fileName = getFileDisplayName(doc.key);
+          const error = uploadErrors[doc.key];
 
           return (
             <div
               key={doc.key}
               className={`rounded-lg border-2 border-dashed p-4 transition-colors ${
-                isUploaded
-                  ? "border-green-300 bg-green-50 dark:border-green-800 dark:bg-green-950/20"
-                  : file
-                  ? "border-amber-300 bg-amber-50 dark:border-amber-800 dark:bg-amber-950/20"
-                  : "border-gray-300 hover:border-[#1B3A5C] dark:border-gray-700"
+                error
+                  ? "border-red-300 bg-red-50"
+                  : isUploaded
+                  ? "border-green-300 bg-green-50"
+                  : isUploading
+                  ? "border-amber-300 bg-amber-50"
+                  : "border-gray-300 hover:border-[#1B3A5C]"
               }`}
             >
               <Label
@@ -116,48 +157,45 @@ export default function StepDocuments() {
                 <div className="flex items-center gap-3">
                   <div
                     className={`flex h-10 w-10 items-center justify-center rounded-lg ${
-                      isUploaded
+                      error
+                        ? "bg-red-100"
+                        : isUploaded
                         ? "bg-green-100"
-                        : "bg-amber-100"
+                        : "bg-gray-100"
                     }`}
                   >
                     {isUploading ? (
                       <Loader2 className="h-5 w-5 animate-spin text-amber-600" />
+                    ) : error ? (
+                      <AlertCircle className="h-5 w-5 text-red-600" />
                     ) : isUploaded ? (
                       <CheckCircle2 className="h-5 w-5 text-green-600" />
                     ) : (
-                      <FileText className="h-5 w-5 text-amber-600" />
+                      <FileText className="h-5 w-5 text-gray-400" />
                     )}
                   </div>
                   <div>
-                    <p className="font-medium text-gray-700 dark:text-gray-300">
+                    <p className="font-medium text-gray-700">
                       {doc.label}
-                      <span className="ml-1 text-red-500">*</span>
+                      {doc.required && (
+                        <span className="ml-1 text-red-500">*</span>
+                      )}
                     </p>
                     <p className="text-xs text-gray-500">
-                      {isUploading
-                        ? "Uploading..."
-                        : isUploaded
-                        ? "Uploaded ✓"
-                        : file
-                        ? file.name
-                        : "No file selected"}
+                      {error ? (
+                        <span className="text-red-500">{error}</span>
+                      ) : isUploading ? (
+                        "Uploading..."
+                      ) : fileName ? (
+                        <span className="text-green-600">✓ {fileName}</span>
+                      ) : (
+                        "Click to upload"
+                      )}
                     </p>
                   </div>
                 </div>
 
-                {file && !isUploading ? (
-                  <button
-                    type="button"
-                    onClick={(e) => {
-                      e.preventDefault();
-                      handleFileChange(doc.key, null);
-                    }}
-                    className="rounded-full p-1 text-red-500 hover:bg-red-50 dark:hover:bg-red-950"
-                  >
-                    <X className="h-4 w-4" />
-                  </button>
-                ) : (
+                {!isUploading && (
                   <Upload className="h-5 w-5 text-gray-400" />
                 )}
               </Label>
@@ -178,6 +216,11 @@ export default function StepDocuments() {
           );
         })}
       </div>
+
+      <p className="mt-4 text-xs text-gray-400">
+        Your documents are securely uploaded and will only be used for
+        admission processing.
+      </p>
     </div>
   );
 }

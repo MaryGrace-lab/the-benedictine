@@ -1,3 +1,4 @@
+//app/(public)/admission/apply/page.tsx
 import type { Metadata } from "next";
 import { ApplicationWizard } from "./_components";
 

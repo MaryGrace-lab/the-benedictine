@@ -4,7 +4,11 @@ import { useApplicationForm } from "../_hooks/useApplicationForm";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
-export default function StepParentInfo() {
+interface Props {
+  errors?: Record<string, string>;
+}
+
+export default function StepParentInfo({ errors = {} }: Props) {
   const {
     fatherName,
     motherName,
@@ -19,12 +23,12 @@ export default function StepParentInfo() {
     updateField,
   } = useApplicationForm();
 
+  const inputClass = (field: string) =>
+    `mt-1 ${errors[field] ? "border-red-500 focus:border-red-500 focus:ring-red-200" : ""}`;
+
   return (
     <div>
-      <h2 className="mb-6 text-xl font-bold text-[#1B3A5C]">
-        Parent / Guardian Information
-      </h2>
-
+      <h2 className="mb-6 text-xl font-bold text-[#1B3A5C]">Parent / Guardian Information</h2>
       <div className="grid gap-5 sm:grid-cols-2">
         <div>
           <Label htmlFor="fatherName">Father&apos;s Name *</Label>
@@ -33,8 +37,9 @@ export default function StepParentInfo() {
             value={fatherName}
             onChange={(e) => updateField("fatherName", e.target.value)}
             placeholder="Full name"
-            className="mt-1"
+            className={inputClass("fatherName")}
           />
+          {errors.fatherName && <p className="text-xs text-red-500 mt-1">{errors.fatherName}</p>}
         </div>
 
         <div>
@@ -44,8 +49,9 @@ export default function StepParentInfo() {
             value={motherName}
             onChange={(e) => updateField("motherName", e.target.value)}
             placeholder="Full name"
-            className="mt-1"
+            className={inputClass("motherName")}
           />
+          {errors.motherName && <p className="text-xs text-red-500 mt-1">{errors.motherName}</p>}
         </div>
 
         <div>
@@ -66,8 +72,9 @@ export default function StepParentInfo() {
             value={occupation}
             onChange={(e) => updateField("occupation", e.target.value)}
             placeholder="Parent/Guardian occupation"
-            className="mt-1"
+            className={inputClass("occupation")}
           />
+          {errors.occupation && <p className="text-xs text-red-500 mt-1">{errors.occupation}</p>}
         </div>
 
         <div>
@@ -78,8 +85,9 @@ export default function StepParentInfo() {
             value={email}
             onChange={(e) => updateField("email", e.target.value)}
             placeholder="parent@email.com"
-            className="mt-1"
+            className={inputClass("email")}
           />
+          {errors.email && <p className="text-xs text-red-500 mt-1">{errors.email}</p>}
         </div>
 
         <div>
@@ -89,8 +97,9 @@ export default function StepParentInfo() {
             value={phoneNumber}
             onChange={(e) => updateField("phoneNumber", e.target.value)}
             placeholder="+234 800 000 0000"
-            className="mt-1"
+            className={inputClass("phoneNumber")}
           />
+          {errors.phoneNumber && <p className="text-xs text-red-500 mt-1">{errors.phoneNumber}</p>}
         </div>
 
         <div>
@@ -111,8 +120,11 @@ export default function StepParentInfo() {
             value={residentialAddress}
             onChange={(e) => updateField("residentialAddress", e.target.value)}
             placeholder="Full residential address"
-            className="mt-1"
+            className={inputClass("residentialAddress")}
           />
+          {errors.residentialAddress && (
+            <p className="text-xs text-red-500 mt-1">{errors.residentialAddress}</p>
+          )}
         </div>
 
         <div>
@@ -122,8 +134,11 @@ export default function StepParentInfo() {
             value={emergencyContact}
             onChange={(e) => updateField("emergencyContact", e.target.value)}
             placeholder="Full name"
-            className="mt-1"
+            className={inputClass("emergencyContact")}
           />
+          {errors.emergencyContact && (
+            <p className="text-xs text-red-500 mt-1">{errors.emergencyContact}</p>
+          )}
         </div>
 
         <div>
@@ -133,8 +148,11 @@ export default function StepParentInfo() {
             value={emergencyPhone}
             onChange={(e) => updateField("emergencyPhone", e.target.value)}
             placeholder="+234 800 000 0000"
-            className="mt-1"
+            className={inputClass("emergencyPhone")}
           />
+          {errors.emergencyPhone && (
+            <p className="text-xs text-red-500 mt-1">{errors.emergencyPhone}</p>
+          )}
         </div>
       </div>
     </div>

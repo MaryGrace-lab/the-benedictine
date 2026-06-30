@@ -1,58 +1,58 @@
 // lib/auth.ts
-// ──────────────────────────────────────────────
 // Student Password Generation & Authentication
-// ──────────────────────────────────────────────
-import bcrypt from "bcrypt";
+import bcrypt from "bcryptjs";
+import crypto from "crypto";
 
 /**
  * Generates a derived, hashed initial password for a student.
- * Format: UPPERCASE_LAST_NAME + LAST_4_DIGITS_OF_ID
- *
- * Examples:
- *   lastName="Smith", studentId="BA-2026-5421" → SMITH5421
- *   lastName="Obi-Wan", studentId="STU-0012"   → OBIWAN0012
- *   lastName="De Silva", studentId="9876"      → DESILVA9876
+ * Format: UPPERCASE_LAST_NAME + LAST_4_DIGITS_OF_ID + RANDOM_4_CHARS
  *
  * @param lastName  - The student's last name
  * @param studentId - The student's unique login/card ID
- * @returns The bcrypt-hashed password string ready for database storage
+ * @returns Object containing hashed password and plaintext version
  */
 export async function generateInitialStudentPassword(
   lastName: string,
   studentId: string
-): Promise<string> {
-  // 1. Clean and uppercase the last name (remove spaces, hyphens, apostrophes, etc.)
+): Promise<{ hashed: string; plaintext: string }> {
+  // 1. Clean and uppercase the last name
   const cleanLastName = lastName
     .trim()
     .toUpperCase()
-    .replace(/[^A-Z]/g, ""); // Keeps only letters A-Z
+    .replace(/[^A-Z]/g, "");
 
   // 2. Extract the last 4 characters of the student ID
   const cleanId = studentId.trim();
   const lastFourDigits = cleanId.slice(-4);
 
-  // 3. Combine them to make the plaintext temporary password
-  const temporaryPlaintextPassword = `${cleanLastName}${lastFourDigits}`;
+  // 3. Add random component for security
+  const randomBytes = crypto.randomBytes(4);
+  const randomPart = randomBytes.toString("hex").slice(0, 4).toUpperCase();
 
-  // 4. Hash it securely before it ever touches the database
+  // 4. Combine them
+  const plaintext = `${cleanLastName}${lastFourDigits}${randomPart}`;
+
+  // 5. Hash with bcryptjs
   const saltRounds = 10;
-  const hashedPassword = await bcrypt.hash(temporaryPlaintextPassword, saltRounds);
+  const hashed = await bcrypt.hash(plaintext, saltRounds);
 
-  return hashedPassword;
+  return { hashed, plaintext };
 }
 
 /**
  * Returns the plaintext version of the derived password.
- * Use this ONLY for displaying to the student/parent on a printed slip.
- * NEVER store this in the database.
- *
+ * Use ONLY for initial display to student/parent.
+ * NEVER store plaintext in database.
+ * 
  * @param lastName  - The student's last name
  * @param studentId - The student's unique login/card ID
- * @returns The plaintext temporary password (e.g., "SMITH5421")
+ * @param randomPart - The random portion generated during creation
+ * @returns The plaintext temporary password
  */
 export function getPlaintextStudentPassword(
   lastName: string,
-  studentId: string
+  studentId: string,
+  randomPart: string
 ): string {
   const cleanLastName = lastName
     .trim()
@@ -61,7 +61,7 @@ export function getPlaintextStudentPassword(
 
   const lastFourDigits = studentId.trim().slice(-4);
 
-  return `${cleanLastName}${lastFourDigits}`;
+  return `${cleanLastName}${lastFourDigits}${randomPart}`;
 }
 
 /**
@@ -80,4 +80,26 @@ export async function verifyStudentPassword(
 export async function hashPassword(plainPassword: string): Promise<string> {
   const saltRounds = 10;
   return bcrypt.hash(plainPassword, saltRounds);
+}
+
+/**
+ * Validates password strength
+ */
+export function validatePasswordStrength(password: string): {
+  valid: boolean;
+  message: string;
+} {
+  if (password.length < 8) {
+    return { valid: false, message: "Password must be at least 8 characters" };
+  }
+  if (!/[A-Z]/.test(password)) {
+    return { valid: false, message: "Password must contain an uppercase letter" };
+  }
+  if (!/[a-z]/.test(password)) {
+    return { valid: false, message: "Password must contain a lowercase letter" };
+  }
+  if (!/[0-9]/.test(password)) {
+    return { valid: false, message: "Password must contain a number" };
+  }
+  return { valid: true, message: "Password is strong" };
 }

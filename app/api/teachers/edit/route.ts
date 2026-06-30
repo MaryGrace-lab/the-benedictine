@@ -2,7 +2,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getAdminFromSession } from "@/lib/jwt";
-import * as bcrypt from "bcrypt";
+import bcrypt from "bcryptjs";
 
 export async function PUT(req: Request) {
   try {

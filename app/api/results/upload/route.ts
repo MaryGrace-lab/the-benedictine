@@ -1,7 +1,6 @@
 // app/api/results/upload/route.ts
-// ──────────────────────────────────────────────
 // Result Upload API — Admin & Teacher
-// ──────────────────────────────────────────────
+// Full validation with Zod, proper error handling, type‑safe transaction
 
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
@@ -10,7 +9,9 @@ import { calculateSubjectResult, calculateResultSummary } from "@/lib/grading";
 import { calculateSocialBehaviourScore } from "@/lib/rating";
 import { getAdminFromSession, getTeacherFromSession } from "@/lib/jwt";
 
-// ── Validation Schema ──
+const RatingEnum = z.enum(["EXCELLENT", "GOOD", "AVERAGE", "POOR", "VERY_POOR"]);
+const EvaluationEnum = z.enum(["EXCELLENT", "GOOD", "AVERAGE", "BELOW_AVERAGE", "POOR"]);
+
 const ResultUploadSchema = z.object({
   studentId: z.string().min(1, "Student is required"),
   sessionId: z.string().min(1, "Session is required"),
@@ -23,16 +24,16 @@ const ResultUploadSchema = z.object({
     })
   ).min(1, "At least one subject result is required"),
   socialBehaviour: z.object({
-    obedience: z.enum(["EXCELLENT", "GOOD", "AVERAGE", "POOR", "VERY_POOR"]).nullable(),
-    honesty: z.enum(["EXCELLENT", "GOOD", "AVERAGE", "POOR", "VERY_POOR"]).nullable(),
-    responsibility: z.enum(["EXCELLENT", "GOOD", "AVERAGE", "POOR", "VERY_POOR"]).nullable(),
-    selfControl: z.enum(["EXCELLENT", "GOOD", "AVERAGE", "POOR", "VERY_POOR"]).nullable(),
-    leadership: z.enum(["EXCELLENT", "GOOD", "AVERAGE", "POOR", "VERY_POOR"]).nullable(),
-    relationshipWithOthers: z.enum(["EXCELLENT", "GOOD", "AVERAGE", "POOR", "VERY_POOR"]).nullable(),
-    gamesAndSports: z.enum(["EXCELLENT", "GOOD", "AVERAGE", "POOR", "VERY_POOR"]).nullable(),
-    health: z.enum(["EXCELLENT", "GOOD", "AVERAGE", "POOR", "VERY_POOR"]).nullable(),
-    neatness: z.enum(["EXCELLENT", "GOOD", "AVERAGE", "POOR", "VERY_POOR"]).nullable(),
-    manipulativeSkill: z.enum(["EXCELLENT", "GOOD", "AVERAGE", "POOR", "VERY_POOR"]).nullable(),
+    obedience: RatingEnum.nullable(),
+    honesty: RatingEnum.nullable(),
+    responsibility: RatingEnum.nullable(),
+    selfControl: RatingEnum.nullable(),
+    leadership: RatingEnum.nullable(),
+    relationshipWithOthers: RatingEnum.nullable(),
+    gamesAndSports: RatingEnum.nullable(),
+    health: RatingEnum.nullable(),
+    neatness: RatingEnum.nullable(),
+    manipulativeSkill: RatingEnum.nullable(),
   }).optional(),
   attendance: z.object({
     schoolOpened: z.number().int().min(0).nullable(),
@@ -46,7 +47,7 @@ const ResultUploadSchema = z.object({
     remark: z.string().nullable(),
   }).optional(),
   noInClass: z.number().int().min(0).nullable().optional(),
-  evaluation: z.enum(["EXCELLENT", "GOOD", "AVERAGE", "BELOW_AVERAGE", "POOR"]).nullable().optional(),
+  evaluation: EvaluationEnum.nullable().optional(),
   classTeacherComment: z.string().nullable().optional(),
   nextTermFees: z.string().nullable().optional(),
   outstandingFees: z.string().nullable().optional(),
@@ -70,9 +71,13 @@ export async function POST(req: Request) {
 
     const body = await req.json();
     const validation = ResultUploadSchema.safeParse(body);
+
     if (!validation.success) {
       return NextResponse.json(
-        { error: "Validation failed", details: validation.error.flatten().fieldErrors },
+        {
+          error: "Validation failed",
+          details: validation.error.flatten().fieldErrors,
+        },
         { status: 400 }
       );
     }
@@ -81,10 +86,14 @@ export async function POST(req: Request) {
 
     const student = await prisma.student.findUnique({
       where: { studentId: data.studentId },
+      select: { id: true, firstName: true, lastName: true, class: true },
     });
 
     if (!student) {
-      return NextResponse.json({ error: "Student profile not found" }, { status: 404 });
+      return NextResponse.json(
+        { error: "Student profile not found" },
+        { status: 404 }
+      );
     }
 
     if (
@@ -93,7 +102,7 @@ export async function POST(req: Request) {
       teacherSession.assignedClass !== student.class
     ) {
       return NextResponse.json(
-        { error: "Access denied" },
+        { error: "You can only upload results for your assigned class" },
         { status: 403 }
       );
     }
@@ -103,14 +112,17 @@ export async function POST(req: Request) {
     });
 
     if (!session) {
-      return NextResponse.json({ error: "Academic session not found" }, { status: 404 });
+      return NextResponse.json(
+        { error: "Academic session not found" },
+        { status: 404 }
+      );
     }
 
-    const result: any = await prisma.$transaction(async (tx: any) => {
-      const savedResults: any[] = [];
+    // Process in transaction with explicit typing for accumulator variables
+    const result = await prisma.$transaction(async (tx) => {
+      const savedResults: Awaited<ReturnType<typeof tx.result.upsert>>[] = [];
       const subjectTotals: (number | null)[] = [];
 
-      // 1. Save Subject Results
       for (const subjectResult of data.results) {
         const calculation = calculateSubjectResult(
           subjectResult.firstTest,
@@ -142,52 +154,68 @@ export async function POST(req: Request) {
             exam: subjectResult.exam,
             total: calculation.total,
             grade: calculation.grade,
-          } as any,
+          },
         });
 
         savedResults.push(saved);
         subjectTotals.push(calculation.total);
       }
 
-      // 2. Save Social Behaviour
-      let socialBehaviourRecord: any = null;
+      // Social behaviour – type as the actual Prisma return type or null
+      let socialBehaviourRecord: Awaited<ReturnType<typeof tx.socialBehaviour.upsert>> | null = null;
       if (data.socialBehaviour) {
-        const { totalCumulative, totalScored, percentageAvg, remark } =
-          calculateSocialBehaviourScore(data.socialBehaviour as Record<string, unknown>);
-
-        const mappedBehaviour = Object.entries(data.socialBehaviour).reduce((acc, [key, val]) => {
-          acc[key] = val === null ? null : (val as any);
-          return acc;
-        }, {} as Record<string, any>);
-
+        const behaviourScores = calculateSocialBehaviourScore(data.socialBehaviour);
         socialBehaviourRecord = await tx.socialBehaviour.upsert({
-          where: { studentId_sessionId: { studentId: student.id, sessionId: data.sessionId } },
-          update: { ...mappedBehaviour, totalCumulative, totalScored, percentageAvg, remark },
+          where: {
+            studentId_sessionId: {
+              studentId: student.id,
+              sessionId: data.sessionId,
+            },
+          },
+          update: {
+            ...data.socialBehaviour,
+            ...behaviourScores,
+          },
           create: {
-            studentId: student.id, sessionId: data.sessionId,
-            ...mappedBehaviour, totalCumulative, totalScored, percentageAvg, remark,
-          } as any,
+            studentId: student.id,
+            sessionId: data.sessionId,
+            ...data.socialBehaviour,
+            ...behaviourScores,
+          },
         });
       }
 
-      // 3. Save Attendance
-      let attendanceRecord: any = null;
+      // Attendance
+      let attendanceRecord: Awaited<ReturnType<typeof tx.attendance.upsert>> | null = null;
       if (data.attendance) {
         attendanceRecord = await tx.attendance.upsert({
-          where: { studentId_sessionId: { studentId: student.id, sessionId: data.sessionId } },
-          update: { ...data.attendance },
-          create: { studentId: student.id, sessionId: data.sessionId, ...data.attendance } as any,
+          where: {
+            studentId_sessionId: {
+              studentId: student.id,
+              sessionId: data.sessionId,
+            },
+          },
+          update: data.attendance,
+          create: {
+            studentId: student.id,
+            sessionId: data.sessionId,
+            ...data.attendance,
+          },
         });
       }
 
-      // 4. Save Result Summary
+      // Result summary
       const summary = calculateResultSummary(subjectTotals);
-
       const resultSummaryRecord = await tx.resultSummary.upsert({
-        where: { studentId_sessionId: { studentId: student.id, sessionId: data.sessionId } },
+        where: {
+          studentId_sessionId: {
+            studentId: student.id,
+            sessionId: data.sessionId,
+          },
+        },
         update: {
           noInClass: data.noInClass ?? null,
-          evaluation: data.evaluation ? (data.evaluation as any) : null,
+          evaluation: data.evaluation ?? null,
           totalCumulative: summary.totalCumulative,
           totalScore: summary.totalScore,
           percentageAvg: summary.percentageAvg,
@@ -201,9 +229,10 @@ export async function POST(req: Request) {
           parentName: data.parentName ?? null,
         },
         create: {
-          studentId: student.id, sessionId: data.sessionId,
+          studentId: student.id,
+          sessionId: data.sessionId,
           noInClass: data.noInClass ?? null,
-          evaluation: data.evaluation ? (data.evaluation as any) : null,
+          evaluation: data.evaluation ?? null,
           totalCumulative: summary.totalCumulative,
           totalScore: summary.totalScore,
           percentageAvg: summary.percentageAvg,
@@ -215,15 +244,20 @@ export async function POST(req: Request) {
           nextTermBegins: data.nextTermBegins ?? null,
           headTeacherComment: data.headTeacherComment ?? null,
           parentName: data.parentName ?? null,
-        } as any,
+        },
       });
 
-      return { results: savedResults, socialBehaviour: socialBehaviourRecord, attendance: attendanceRecord, resultSummary: resultSummaryRecord } as any;
-    }, { timeout: 30000 });
+      return {
+        results: savedResults,
+        socialBehaviour: socialBehaviourRecord,
+        attendance: attendanceRecord,
+        resultSummary: resultSummaryRecord,
+      };
+    });
 
     return NextResponse.json({
       success: true,
-      message: "Student results compiled and saved successfully",
+      message: "Student results saved successfully",
       student: `${student.firstName} ${student.lastName}`,
       summary: {
         subjectsProcessed: result.results.length,
@@ -232,9 +266,9 @@ export async function POST(req: Request) {
       },
     });
   } catch (error) {
-    console.error("Result Upload Error:", error instanceof Error ? error.message : error);
+    console.error("Result Upload Error:", error);
     return NextResponse.json(
-      { error: error instanceof Error ? error.message : "Transactional error occurred" },
+      { error: "Failed to save results. Please try again." },
       { status: 500 }
     );
   }

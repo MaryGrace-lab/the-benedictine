@@ -5,7 +5,7 @@ import { motion } from "framer-motion";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { X, Loader2, CheckCircle, XCircle, Clock, FileText } from "lucide-react";
+import { X, Loader2, CheckCircle, XCircle, Clock, FileText, ExternalLink } from "lucide-react";
 
 const statusConfig: Record<string, { label: string; color: "default" | "secondary" | "success" | "warning" | "destructive" }> = {
   DRAFT: { label: "Draft", color: "secondary" },
@@ -170,19 +170,82 @@ export default function AdmissionDetailModal({ applicationId, onClose, onStatusC
               </CardContent>
             </Card>
 
-            {/* Documents */}
-            <Card>
-              <CardContent className="p-4">
-                <p className="text-sm font-medium mb-2">Documents</p>
-                <div className="flex flex-wrap gap-2">
-                  {data.passportPhoto && <Badge variant="success">Passport ✓</Badge>}
-                  {data.birthCertificate && <Badge variant="success">Birth Cert ✓</Badge>}
-                  {data.previousResult && <Badge variant="success">Results ✓</Badge>}
-                  {data.medicalReport && <Badge variant="success">Medical ✓</Badge>}
-                  {data.recommendationLetter && <Badge variant="success">Recommendation ✓</Badge>}
-                </div>
-              </CardContent>
-            </Card>
+{/* Documents */}
+<Card>
+  <CardContent className="p-4">
+    <p className="text-sm font-medium mb-2">Documents</p>
+    <div className="flex flex-wrap gap-2">
+      {data.passportPhoto && (
+        <a
+          href={`/api/admission/view-file?url=${encodeURIComponent(data.passportPhoto)}`}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="group inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-green-50 text-green-700 text-xs font-semibold hover:bg-green-100 transition-all border border-green-200 hover:border-green-300 hover:shadow-sm cursor-pointer"
+          title="Click to view"
+        >
+          <FileText className="h-3 w-3" />
+          Passport
+          <ExternalLink className="h-3 w-3 opacity-0 group-hover:opacity-100 transition-opacity" />
+        </a>
+      )}
+      {data.birthCertificate && (
+        <a
+          href={`/api/admission/view-file?url=${encodeURIComponent(data.birthCertificate)}`}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="group inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-green-50 text-green-700 text-xs font-semibold hover:bg-green-100 transition-all border border-green-200 hover:border-green-300 hover:shadow-sm cursor-pointer"
+          title="Click to view"
+        >
+          <FileText className="h-3 w-3" />
+          Birth Cert
+          <ExternalLink className="h-3 w-3 opacity-0 group-hover:opacity-100 transition-opacity" />
+        </a>
+      )}
+      {data.previousResult && (
+        <a
+          href={`/api/admission/view-file?url=${encodeURIComponent(data.previousResult)}`}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="group inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-green-50 text-green-700 text-xs font-semibold hover:bg-green-100 transition-all border border-green-200 hover:border-green-300 hover:shadow-sm cursor-pointer"
+          title="Click to view"
+        >
+          <FileText className="h-3 w-3" />
+          Results
+          <ExternalLink className="h-3 w-3 opacity-0 group-hover:opacity-100 transition-opacity" />
+        </a>
+      )}
+      {data.medicalReport && (
+        <a
+          href={`/api/admission/view-file?url=${encodeURIComponent(data.medicalReport)}`}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="group inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-green-50 text-green-700 text-xs font-semibold hover:bg-green-100 transition-all border border-green-200 hover:border-green-300 hover:shadow-sm cursor-pointer"
+          title="Click to view"
+        >
+          <FileText className="h-3 w-3" />
+          Medical
+          <ExternalLink className="h-3 w-3 opacity-0 group-hover:opacity-100 transition-opacity" />
+        </a>
+      )}
+      {data.recommendationLetter && (
+        <a
+          href={`/api/admission/view-file?url=${encodeURIComponent(data.recommendationLetter)}`}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="group inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-green-50 text-green-700 text-xs font-semibold hover:bg-green-100 transition-all border border-green-200 hover:border-green-300 hover:shadow-sm cursor-pointer"
+          title="Click to view"
+        >
+          <FileText className="h-3 w-3" />
+          Recommendation
+          <ExternalLink className="h-3 w-3 opacity-0 group-hover:opacity-100 transition-opacity" />
+        </a>
+      )}
+      {!data.passportPhoto && !data.birthCertificate && !data.previousResult && !data.medicalReport && !data.recommendationLetter && (
+        <span className="text-xs text-gray-400">No documents uploaded</span>
+      )}
+    </div>
+  </CardContent>
+</Card>
           </div>
 
           {/* Actions */}
@@ -196,13 +259,6 @@ export default function AdmissionDetailModal({ applicationId, onClose, onStatusC
               Reject
             </Button>
             <div className="flex gap-2">
-              <Button
-                variant="outline"
-                onClick={() => onStatusChange(data.id, "AWAITING_TEST")}
-              >
-                <Clock className="mr-2 h-4 w-4" />
-                Schedule Test
-              </Button>
               <Button
                 className="bg-green-600 hover:bg-green-700"
                 onClick={() => onStatusChange(data.id, "ADMITTED")}

@@ -3,11 +3,12 @@
 // ──────────────────────────────────────────────
 // Student Login Page — Client Component
 // Login form with forgot password flow.
+// Password is revealed with copy functionality and security warning.
 // ──────────────────────────────────────────────
 
 import React, { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Eye, EyeOff } from "lucide-react";
+import { Eye, EyeOff, Loader2, Copy, Check } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import toast, { Toaster } from "react-hot-toast";
@@ -32,16 +33,31 @@ export default function StudentLoginPage() {
   const [forgotLastName, setForgotLastName] = useState("");
   const [forgotLoading, setForgotLoading] = useState(false);
   const [resetResult, setResetResult] = useState<ResetResult>(null);
+  const [passwordCopied, setPasswordCopied] = useState(false);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    // Trim inputs
+    const trimmedStudentId = studentId.trim();
+    const trimmedPassword = password.trim();
+
+    // Validation
+    if (!trimmedStudentId || !trimmedPassword) {
+      toast.error("Please fill in all fields");
+      return;
+    }
+
     setLoading(true);
 
     try {
       const res = await fetch("/api/auth/student-login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ studentId, password }),
+        body: JSON.stringify({ 
+          studentId: trimmedStudentId, 
+          password: trimmedPassword 
+        }),
       });
 
       const data = await res.json();
@@ -61,6 +77,17 @@ export default function StudentLoginPage() {
 
   const handleForgotPassword = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    // Trim inputs
+    const trimmedStudentId = forgotStudentId.trim();
+    const trimmedLastName = forgotLastName.trim();
+
+    // Validation
+    if (!trimmedStudentId || !trimmedLastName) {
+      toast.error("Please fill in all fields");
+      return;
+    }
+
     setForgotLoading(true);
     setResetResult(null);
 
@@ -68,7 +95,10 @@ export default function StudentLoginPage() {
       const res = await fetch("/api/auth/forgot-password", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ studentId: forgotStudentId, lastName: forgotLastName }),
+        body: JSON.stringify({ 
+          studentId: trimmedStudentId, 
+          lastName: trimmedLastName 
+        }),
       });
 
       const data = await res.json();
@@ -86,6 +116,19 @@ export default function StudentLoginPage() {
     }
   };
 
+  const handleCopyPassword = async () => {
+    if (resetResult?.password) {
+      try {
+        await navigator.clipboard.writeText(resetResult.password);
+        setPasswordCopied(true);
+        toast.success("Password copied to clipboard!");
+        setTimeout(() => setPasswordCopied(false), 2000);
+      } catch {
+        toast.error("Failed to copy. Please copy manually.");
+      }
+    }
+  };
+
   const handleBackToLogin = () => {
     const recoveredId = resetResult?.studentId || forgotStudentId;
     setShowForgot(false);
@@ -93,11 +136,22 @@ export default function StudentLoginPage() {
     setForgotStudentId("");
     setForgotLastName("");
     setStudentId(recoveredId);
+    setPasswordCopied(false);
   };
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-slate-50 p-4">
-      <Toaster position="top-center" />
+      <Toaster 
+        position="top-center" 
+        toastOptions={{
+          duration: 3000,
+          style: {
+            background: "#fff",
+            color: "#3D1902",
+            border: "1px solid #8B5E3C20",
+          },
+        }}
+      />
 
       <div className="bg-white p-8 rounded-2xl shadow-lg max-w-md w-full">
         {!showForgot ? (
@@ -109,6 +163,7 @@ export default function StudentLoginPage() {
               width={64}
               height={64}
               className="mx-auto mb-4 rounded-full"
+              priority
             />
 
             <h1 className="text-2xl font-bold text-center text-slate-800 mb-2">
@@ -118,7 +173,7 @@ export default function StudentLoginPage() {
               Enter your Card ID and password to view results
             </p>
 
-            <form onSubmit={handleLogin} className="space-y-4">
+            <form onSubmit={handleLogin} className="space-y-4" noValidate>
               {/* Card ID */}
               <div>
                 <label htmlFor="card-id" className="block text-sm font-medium text-slate-600 mb-1">
@@ -130,9 +185,10 @@ export default function StudentLoginPage() {
                   value={studentId}
                   onChange={(e) => setStudentId(e.target.value)}
                   placeholder="e.g. BA-2025-0001"
-                  className="w-full p-3 border border-slate-200 rounded-lg outline-none focus:ring-2 focus:ring-[#8B5E3C]/20"
+                  className="w-full p-3 border border-slate-200 rounded-lg outline-none focus:ring-2 focus:ring-[#8B5E3C]/20 focus:border-[#8B5E3C] transition-all"
                   required
                   autoComplete="username"
+                  disabled={loading}
                 />
               </div>
 
@@ -148,15 +204,17 @@ export default function StudentLoginPage() {
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     placeholder="Enter your password"
-                    className="w-full p-3 pr-12 border border-slate-200 rounded-lg outline-none focus:ring-2 focus:ring-[#8B5E3C]/20"
+                    className="w-full p-3 pr-12 border border-slate-200 rounded-lg outline-none focus:ring-2 focus:ring-[#8B5E3C]/20 focus:border-[#8B5E3C] transition-all"
                     required
                     autoComplete="current-password"
+                    disabled={loading}
                   />
                   <button
                     type="button"
                     onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 p-1"
                     aria-label={showPassword ? "Hide password" : "Show password"}
+                    tabIndex={-1}
                   >
                     {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
                   </button>
@@ -166,9 +224,16 @@ export default function StudentLoginPage() {
               <button
                 type="submit"
                 disabled={loading}
-                className="w-full py-3 bg-[#270f01] text-white rounded-lg font-semibold hover:bg-[#3d1902] disabled:opacity-50 transition-all"
+                className="w-full py-3 bg-[#8B5E3C] text-white rounded-lg font-semibold hover:bg-[#6B3F2C] disabled:opacity-50 transition-all flex items-center justify-center gap-2"
               >
-                {loading ? "Signing in..." : "Sign In"}
+                {loading ? (
+                  <>
+                    <Loader2 size={18} className="animate-spin" />
+                    Signing in...
+                  </>
+                ) : (
+                  "Sign In"
+                )}
               </button>
             </form>
 
@@ -176,7 +241,7 @@ export default function StudentLoginPage() {
             <p className="text-center mt-4">
               <button
                 onClick={() => setShowForgot(true)}
-                className="text-sm text-[#8B5E3C] hover:underline font-medium"
+                className="text-sm text-[#8B5E3C] hover:underline font-medium transition-colors"
               >
                 Forgot Password?
               </button>
@@ -184,7 +249,10 @@ export default function StudentLoginPage() {
 
             {/* Back to Home */}
             <p className="text-center mt-2">
-              <Link href="/" className="text-xs text-slate-400 hover:text-slate-600">
+              <Link 
+                href="/" 
+                className="text-xs text-slate-400 hover:text-slate-600 transition-colors"
+              >
                 ← Back to Home
               </Link>
             </p>
@@ -199,27 +267,49 @@ export default function StudentLoginPage() {
             </p>
 
             {resetResult ? (
-              <div className="bg-green-50 border border-green-200 rounded-xl p-4 text-center">
-                <p className="text-green-700 font-semibold mb-2">✅ Password Reset!</p>
-                <p className="text-sm text-slate-600 mb-1">
+              <div className="bg-green-50 border border-green-200 rounded-xl p-6 text-center">
+                <p className="text-green-700 font-semibold text-lg mb-3">
+                  ✅ Password Reset Successful!
+                </p>
+                <p className="text-sm text-slate-600 mb-4">
                   Student: <strong>{resetResult.studentName}</strong>
                 </p>
-                <p className="text-sm text-slate-600 mb-3">New Password:</p>
-                <code className="bg-white px-4 py-2 rounded-lg text-lg font-bold text-[#3D1902] font-mono">
-                  {resetResult.password}
-                </code>
-                <p className="text-xs text-slate-400 mt-3">
-                  Your password has been reset to the original. Use this to login.
+                
+                <div className="bg-white rounded-lg p-4 mb-3 border border-green-100">
+                  <p className="text-xs text-slate-500 mb-2">
+                    Your temporary password is:
+                  </p>
+                  <div className="flex items-center justify-center gap-2">
+                    <code className="text-xl font-bold text-[#3D1902] font-mono tracking-wider select-all">
+                      {resetResult.password}
+                    </code>
+                    <button
+                      onClick={handleCopyPassword}
+                      className="p-2 hover:bg-green-50 rounded-lg transition-colors flex-shrink-0"
+                      aria-label="Copy password"
+                    >
+                      {passwordCopied ? (
+                        <Check size={18} className="text-green-600" />
+                      ) : (
+                        <Copy size={18} className="text-slate-400" />
+                      )}
+                    </button>
+                  </div>
+                </div>
+
+                <p className="text-xs text-red-500 font-medium mb-4">
+                  ⚠️ Change this password immediately after logging in for security!
                 </p>
+
                 <button
                   onClick={handleBackToLogin}
-                  className="mt-4 px-6 py-2 bg-[#8B5E3C] text-white rounded-lg text-sm font-semibold hover:bg-[#6B3F2C] transition-all"
+                  className="w-full py-3 bg-[#8B5E3C] text-white rounded-lg text-sm font-semibold hover:bg-[#6B3F2C] transition-all"
                 >
                   Go to Login
                 </button>
               </div>
             ) : (
-              <form onSubmit={handleForgotPassword} className="space-y-4">
+              <form onSubmit={handleForgotPassword} className="space-y-4" noValidate>
                 <div>
                   <label htmlFor="forgot-studentId" className="block text-sm font-medium text-slate-600 mb-1">
                     Card ID
@@ -230,8 +320,9 @@ export default function StudentLoginPage() {
                     value={forgotStudentId}
                     onChange={(e) => setForgotStudentId(e.target.value)}
                     placeholder="e.g. BA-2025-0001"
-                    className="w-full p-3 border border-slate-200 rounded-lg outline-none focus:ring-2 focus:ring-[#8B5E3C]/20"
+                    className="w-full p-3 border border-slate-200 rounded-lg outline-none focus:ring-2 focus:ring-[#8B5E3C]/20 focus:border-[#8B5E3C] transition-all"
                     required
+                    disabled={forgotLoading}
                   />
                 </div>
 
@@ -245,23 +336,34 @@ export default function StudentLoginPage() {
                     value={forgotLastName}
                     onChange={(e) => setForgotLastName(e.target.value)}
                     placeholder="Enter your last name"
-                    className="w-full p-3 border border-slate-200 rounded-lg outline-none focus:ring-2 focus:ring-[#8B5E3C]/20"
+                    className="w-full p-3 border border-slate-200 rounded-lg outline-none focus:ring-2 focus:ring-[#8B5E3C]/20 focus:border-[#8B5E3C] transition-all"
                     required
+                    disabled={forgotLoading}
                   />
                 </div>
 
                 <button
                   type="submit"
                   disabled={forgotLoading}
-                  className="w-full py-3 bg-[#8B5E3C] text-white rounded-lg font-semibold hover:bg-[#6B3F2C] disabled:opacity-50 transition-all"
+                  className="w-full py-3 bg-[#8B5E3C] text-white rounded-lg font-semibold hover:bg-[#6B3F2C] disabled:opacity-50 transition-all flex items-center justify-center gap-2"
                 >
-                  {forgotLoading ? "Resetting..." : "Reset Password"}
+                  {forgotLoading ? (
+                    <>
+                      <Loader2 size={18} className="animate-spin" />
+                      Resetting...
+                    </>
+                  ) : (
+                    "Reset Password"
+                  )}
                 </button>
 
                 <button
                   type="button"
-                  onClick={() => setShowForgot(false)}
-                  className="w-full py-2 text-slate-500 hover:text-slate-700 text-sm font-medium"
+                  onClick={() => {
+                    setShowForgot(false);
+                    setResetResult(null);
+                  }}
+                  className="w-full py-2 text-slate-500 hover:text-slate-700 text-sm font-medium transition-colors"
                 >
                   ← Back to Login
                 </button>

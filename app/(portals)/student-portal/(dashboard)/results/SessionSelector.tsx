@@ -27,7 +27,7 @@ export default function SessionSelector({
     <select
       value={currentSessionId}
       onChange={handleChange}
-      className="p-2 border border-slate-200 rounded-lg text-sm bg-white"
+      className="p-2.5 border border-slate-200 rounded-lg text-sm bg-white focus:ring-2 focus:ring-[#8B5E3C]/20 focus:border-[#8B5E3C] outline-none transition-all"
       aria-label="Select Academic Session"
     >
       {sessions.map((s) => (

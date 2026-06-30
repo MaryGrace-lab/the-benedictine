@@ -1,17 +1,17 @@
 // app/api/auth/forgot-password/route.ts
-// ──────────────────────────────────────────────
-// Forgot Password API — Student Only
-// Resets password to original auto-generated one.
-// ──────────────────────────────────────────────
+// Resets student password to a NEW random auto-generated one
+// Returns the plaintext password for one-time display
 
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { generateInitialStudentPassword, getPlaintextStudentPassword } from "@/lib/auth";
+import { generateInitialStudentPassword } from "@/lib/auth";
 
 export async function POST(req: Request) {
   try {
-    const { studentId, lastName } = await req.json();
+    const body = await req.json();
+    const { studentId, lastName } = body;
 
+    // Input validation
     if (!studentId || !lastName) {
       return NextResponse.json(
         { error: "Card ID and Last Name are required" },
@@ -19,8 +19,22 @@ export async function POST(req: Request) {
       );
     }
 
+    if (typeof studentId !== "string" || typeof lastName !== "string") {
+      return NextResponse.json(
+        { error: "Invalid input format" },
+        { status: 400 }
+      );
+    }
+
     const trimmedId = studentId.trim();
     const trimmedName = lastName.trim();
+
+    if (!trimmedId || !trimmedName) {
+      return NextResponse.json(
+        { error: "Card ID and Last Name cannot be empty" },
+        { status: 400 }
+      );
+    }
 
     const student = await prisma.student.findUnique({
       where: { studentId: trimmedId },
@@ -37,25 +51,25 @@ export async function POST(req: Request) {
       );
     }
 
-    // Reset password to original auto-generated one
-    const hashedPassword = await generateInitialStudentPassword(
+    // Generate NEW password with random component
+    const { hashed, plaintext } = await generateInitialStudentPassword(
       student.lastName,
       student.studentId
     );
 
+    // Update password in database
     await prisma.student.update({
       where: { studentId: student.studentId },
-      data: { password: hashedPassword },
+      data: { 
+        password: hashed,
+        passwordResetRequired: true,
+      },
     });
 
-    const plainPassword = getPlaintextStudentPassword(
-      student.lastName,
-      student.studentId
-    );
-
+    // Return the plaintext password for one-time display
     return NextResponse.json({
       success: true,
-      password: plainPassword,
+      password: plaintext,
       studentName: `${student.firstName} ${student.lastName}`,
       studentId: student.studentId,
     });

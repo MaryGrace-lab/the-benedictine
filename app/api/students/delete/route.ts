@@ -2,37 +2,52 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getAdminFromSession } from "@/lib/jwt";
+import { z } from "zod";
+
+const DeleteStudentSchema = z.object({
+  studentId: z.string().min(1, "Student ID is required"),
+  confirmation: z.literal("DELETE", {
+    message: 'You must type "DELETE" to confirm',
+  }),
+});
 
 export async function POST(req: Request) {
   try {
     const adminSession = await getAdminFromSession();
 
     if (!adminSession || adminSession.role !== "ADMIN") {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+      return NextResponse.json(
+        { error: "Admin access required" },
+        { status: 401 }
+      );
     }
 
-    const { studentId, confirmation } = await req.json();
+    const body = await req.json();
+    const validation = DeleteStudentSchema.safeParse(body);
 
-    if (!studentId || !confirmation) {
-      return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
+    if (!validation.success) {
+      // Zod 4 returns issues array, not errors
+      const firstIssue = validation.error.issues[0];
+      return NextResponse.json(
+        { error: firstIssue?.message || "Invalid input" },
+        { status: 400 }
+      );
     }
 
-    // Require typing "DELETE" to confirm
-    if (confirmation !== "DELETE") {
-      return NextResponse.json({ error: "Invalid confirmation text" }, { status: 400 });
-    }
+    const { studentId } = validation.data;
 
-    // Find student first
     const student = await prisma.student.findUnique({
       where: { studentId },
+      select: { firstName: true, lastName: true, id: true },
     });
 
     if (!student) {
-      return NextResponse.json({ error: "Student not found" }, { status: 404 });
+      return NextResponse.json(
+        { error: "Student not found" },
+        { status: 404 }
+      );
     }
 
-    // Delete student — cascades to all related records
-    // (Result, SocialBehaviour, Attendance, ResultSummary)
     await prisma.student.delete({
       where: { studentId },
     });
@@ -43,6 +58,9 @@ export async function POST(req: Request) {
     });
   } catch (error) {
     console.error("Student deletion error:", error);
-    return NextResponse.json({ error: "Failed to delete student" }, { status: 500 });
+    return NextResponse.json(
+      { error: "Failed to delete student" },
+      { status: 500 }
+    );
   }
 }

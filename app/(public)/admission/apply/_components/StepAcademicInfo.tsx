@@ -24,21 +24,20 @@ const classOptions = [
   { value: "sss3", label: "SSS 3" },
 ];
 
-export default function StepAcademicInfo() {
-  const {
-    previousSchool,
-    previousClass,
-    applyingClass,
-    session,
-    updateField,
-  } = useApplicationForm();
+interface Props {
+  errors?: Record<string, string>;
+}
+
+export default function StepAcademicInfo({ errors = {} }: Props) {
+  const { previousSchool, previousClass, applyingClass, session, updateField } =
+    useApplicationForm();
+
+  const inputClass = (field: string) =>
+    `mt-1 ${errors[field] ? "border-red-500 focus:border-red-500 focus:ring-red-200" : ""}`;
 
   return (
     <div>
-      <h2 className="mb-6 text-xl font-bold text-[#1B3A5C]">
-        Academic Information
-      </h2>
-
+      <h2 className="mb-6 text-xl font-bold text-[#1B3A5C]">Academic Information</h2>
       <div className="grid gap-5 sm:grid-cols-2">
         <div>
           <Label htmlFor="previousSchool">Previous School</Label>
@@ -69,8 +68,10 @@ export default function StepAcademicInfo() {
             title="Select applying class"
             value={applyingClass}
             onChange={(e) => updateField("applyingClass", e.target.value)}
-            className="mt-1 w-full rounded-lg ..."
-            >
+            className={`mt-1 w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm focus:border-[#1B3A5C] focus:outline-none focus:ring-1 focus:ring-[#1B3A5C] dark:border-gray-700 dark:bg-gray-800 ${
+              errors.applyingClass ? "border-red-500 focus:border-red-500 focus:ring-red-200" : ""
+            }`}
+          >
             <option value="">Select class</option>
             {classOptions.map((opt) => (
               <option key={opt.value} value={opt.value}>
@@ -78,6 +79,9 @@ export default function StepAcademicInfo() {
               </option>
             ))}
           </select>
+          {errors.applyingClass && (
+            <p className="text-xs text-red-500 mt-1">{errors.applyingClass}</p>
+          )}
         </div>
 
         <div>
@@ -87,7 +91,7 @@ export default function StepAcademicInfo() {
             value={session}
             onChange={(e) => updateField("session", e.target.value)}
             placeholder="2026/2027"
-            className="mt-1"
+            className={inputClass("session")}
             readOnly
           />
         </div>

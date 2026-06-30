@@ -9,7 +9,6 @@
 import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import toast, { Toaster } from "react-hot-toast";
-import LogoutButton from "@/components/ui/LogoutButton";
 
 // ── Types ──
 type Student = {
@@ -239,7 +238,6 @@ export default function TeacherBulkUploadClient({ initialStudents, initialSessio
             <h1 className="text-2xl font-bold text-[#3D1902]">📊 Bulk Upload Results</h1>
             <p className="text-xs text-[#8B5E3C]/60 mt-1">{students.length} students in your class</p>
           </div>
-          <LogoutButton type="teacher" />
         </div>
 
         {students.length === 0 ? (

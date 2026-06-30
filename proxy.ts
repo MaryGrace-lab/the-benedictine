@@ -1,13 +1,31 @@
-// proxy.ts
+// proxy.ts — Route Protection, Rate Limiting & API Authorization
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import { jwtVerify } from "jose";
+import { Ratelimit } from "@upstash/ratelimit";
+import { Redis } from "@upstash/redis";
 
 if (!process.env.JWT_SECRET) {
   throw new Error("JWT_SECRET environment variable is required");
 }
 
 const secret = new TextEncoder().encode(process.env.JWT_SECRET);
+
+// Initialize Upstash Redis for rate limiting
+const redis = Redis.fromEnv();
+const authRatelimit = new Ratelimit({
+  redis,
+  limiter: Ratelimit.slidingWindow(5, "15 m"), // 5 attempts per 15 minutes
+  analytics: true,
+  prefix: "ratelimit:auth",
+});
+
+const publicRatelimit = new Ratelimit({
+  redis,
+  limiter: Ratelimit.slidingWindow(10, "1 h"), // 10 submissions per hour
+  analytics: true,
+  prefix: "ratelimit:public",
+});
 
 type TokenPayload = {
   userId: string;
@@ -28,10 +46,15 @@ async function getPayloadFromToken(
 
 export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
+  const ip = request.headers.get("x-forwarded-for") ?? 
+             request.headers.get("x-real-ip") ?? 
+             "anonymous";
 
   // ─────────────────────────────────────────────
-  // 1. ADMIN PORTAL PROTECTION
+  // PORTAL ROUTE PROTECTION
   // ─────────────────────────────────────────────
+
+  // ── ADMIN PORTAL ──
   if (
     pathname.startsWith("/admin-portal") &&
     !pathname.startsWith("/admin-portal/login")
@@ -39,23 +62,23 @@ export async function proxy(request: NextRequest) {
     const token = request.cookies.get("admin-token")?.value;
 
     if (!token) {
-      return NextResponse.redirect(
-        new URL("/admin-portal/login", request.url)
-      );
+      const loginUrl = new URL("/admin-portal/login", request.url);
+      loginUrl.searchParams.set("redirect", pathname);
+      return NextResponse.redirect(loginUrl);
     }
 
     const payload = await getPayloadFromToken(token);
 
     if (!payload || payload.role !== "ADMIN") {
-      return NextResponse.redirect(
+      const response = NextResponse.redirect(
         new URL("/admin-portal/login", request.url)
       );
+      response.cookies.delete("admin-token");
+      return response;
     }
   }
 
-  // ─────────────────────────────────────────────
-  // 2. TEACHER PORTAL PROTECTION
-  // ─────────────────────────────────────────────
+  // ── TEACHER PORTAL ──
   if (
     pathname.startsWith("/teacher-portal") &&
     !pathname.startsWith("/teacher-portal/login")
@@ -63,23 +86,23 @@ export async function proxy(request: NextRequest) {
     const token = request.cookies.get("teacher-token")?.value;
 
     if (!token) {
-      return NextResponse.redirect(
-        new URL("/teacher-portal/login", request.url)
-      );
+      const loginUrl = new URL("/teacher-portal/login", request.url);
+      loginUrl.searchParams.set("redirect", pathname);
+      return NextResponse.redirect(loginUrl);
     }
 
     const payload = await getPayloadFromToken(token);
 
     if (!payload || payload.role !== "TEACHER") {
-      return NextResponse.redirect(
+      const response = NextResponse.redirect(
         new URL("/teacher-portal/login", request.url)
       );
+      response.cookies.delete("teacher-token");
+      return response;
     }
   }
 
-  // ─────────────────────────────────────────────
-  // 3. STUDENT PORTAL PROTECTION
-  // ─────────────────────────────────────────────
+  // ── STUDENT PORTAL ──
   if (
     pathname.startsWith("/student-portal") &&
     !pathname.startsWith("/student-portal/login")
@@ -87,28 +110,82 @@ export async function proxy(request: NextRequest) {
     const token = request.cookies.get("student-token")?.value;
 
     if (!token) {
-      return NextResponse.redirect(
-        new URL("/student-portal/login", request.url)
-      );
+      const loginUrl = new URL("/student-portal/login", request.url);
+      loginUrl.searchParams.set("redirect", pathname);
+      return NextResponse.redirect(loginUrl);
     }
 
     const payload = await getPayloadFromToken(token);
 
     if (!payload || payload.role !== "STUDENT") {
-      return NextResponse.redirect(
+      const response = NextResponse.redirect(
         new URL("/student-portal/login", request.url)
       );
+      response.cookies.delete("student-token");
+      return response;
     }
   }
 
   // ─────────────────────────────────────────────
-  // 4. API PROTECTION
+  // API ROUTE PROTECTION
   // ─────────────────────────────────────────────
-  if (
-    pathname.startsWith("/api/students") ||
-    pathname.startsWith("/api/results") ||
-    pathname.startsWith("/api/sessions")
-  ) {
+  
+  if (pathname.startsWith("/api/")) {
+    
+    // ── AUTH ENDPOINTS (Public but rate-limited) ──
+    if (
+      pathname.startsWith("/api/auth/") && 
+      request.method === "POST"
+    ) {
+      const { success, limit, reset, remaining } = await authRatelimit.limit(ip);
+
+      if (!success) {
+        return NextResponse.json(
+          { error: "Too many attempts. Please try again later." },
+          { 
+            status: 429,
+            headers: {
+              "Retry-After": String(Math.ceil((reset - Date.now()) / 1000)),
+              "X-RateLimit-Limit": String(limit),
+              "X-RateLimit-Remaining": String(remaining),
+              "X-RateLimit-Reset": String(reset),
+            }
+          }
+        );
+      }
+
+      return NextResponse.next();
+    }
+
+    // ── PUBLIC ENDPOINTS ──
+    const publicEndpoints = [
+      "/api/contact",
+      "/api/admission/submit",
+      "/api/admission/applications",
+      "/api/admission/upload",
+    ];
+
+    if (publicEndpoints.some((endpoint) => pathname.startsWith(endpoint))) {
+      if (request.method === "POST") {
+        const { success, reset } = await publicRatelimit.limit(ip);
+        
+        if (!success) {
+          return NextResponse.json(
+            { error: "Too many submissions. Please try again later." },
+            { 
+              status: 429,
+              headers: {
+                "Retry-After": String(Math.ceil((reset - Date.now()) / 1000)),
+              }
+            }
+          );
+        }
+      }
+      
+      return NextResponse.next();
+    }
+
+    // ── PROTECTED ENDPOINTS ──
     const token =
       request.cookies.get("admin-token")?.value ||
       request.cookies.get("teacher-token")?.value ||
@@ -116,7 +193,7 @@ export async function proxy(request: NextRequest) {
 
     if (!token) {
       return NextResponse.json(
-        { error: "Unauthorized" },
+        { error: "Authentication required" },
         { status: 401 }
       );
     }
@@ -125,19 +202,25 @@ export async function proxy(request: NextRequest) {
 
     if (!payload) {
       return NextResponse.json(
-        { error: "Invalid session" },
+        { error: "Invalid or expired session. Please login again." },
         { status: 401 }
       );
     }
 
-    // Students API
-    if (pathname.startsWith("/api/students")) {
-      if (
-        payload.role !== "ADMIN" &&
-        payload.role !== "TEACHER"
-      ) {
+    // Admin-only endpoints
+    const adminOnlyPaths = [
+      "/api/teachers",
+      "/api/sessions",
+      "/api/students/create",
+      "/api/students/delete",
+      "/api/students/edit",
+      "/api/students/password",
+    ];
+
+    if (adminOnlyPaths.some((path) => pathname.startsWith(path))) {
+      if (payload.role !== "ADMIN") {
         return NextResponse.json(
-          { error: "Forbidden" },
+          { error: "Admin access required" },
           { status: 403 }
         );
       }
@@ -145,29 +228,65 @@ export async function proxy(request: NextRequest) {
 
     // Results API
     if (pathname.startsWith("/api/results")) {
-      if (
-        payload.role !== "ADMIN" &&
-        payload.role !== "TEACHER"
-      ) {
+      if (payload.role !== "ADMIN" && payload.role !== "TEACHER") {
         return NextResponse.json(
-          { error: "Forbidden" },
+          { error: "Teacher or Admin access required" },
           { status: 403 }
         );
       }
     }
 
-    // Sessions API
-    if (pathname.startsWith("/api/sessions")) {
-      if (payload.role !== "ADMIN") {
+    // Students list API
+    if (
+      pathname.startsWith("/api/students") && 
+      request.method === "GET" && 
+      !pathname.startsWith("/api/students/profile")
+    ) {
+      if (payload.role !== "ADMIN" && payload.role !== "TEACHER") {
         return NextResponse.json(
-          { error: "Forbidden" },
+          { error: "Teacher or Admin access required" },
           { status: 403 }
         );
       }
     }
   }
 
-  return NextResponse.next();
+  // ─────────────────────────────────────────────
+  // SECURITY HEADERS
+  // ─────────────────────────────────────────────
+  
+  const response = NextResponse.next();
+  
+  response.headers.set("X-Frame-Options", "DENY");
+  response.headers.set("X-Content-Type-Options", "nosniff");
+  response.headers.set("Referrer-Policy", "strict-origin-when-cross-origin");
+  response.headers.set("X-XSS-Protection", "1; mode=block");
+  response.headers.set(
+    "Permissions-Policy",
+    "camera=(), microphone=(), geolocation=(), interest-cohort=()"
+  );
+  
+  if (process.env.NODE_ENV === "production") {
+    response.headers.set(
+      "Strict-Transport-Security",
+      "max-age=31536000; includeSubDomains; preload"
+    );
+  }
+
+  response.headers.set(
+    "Content-Security-Policy",
+    [
+      "default-src 'self'",
+      "script-src 'self' 'unsafe-inline' 'unsafe-eval'",
+      "style-src 'self' 'unsafe-inline'",
+      "img-src 'self' data: blob: https:",
+      "font-src 'self'",
+      "connect-src 'self' https:",
+      "frame-ancestors 'none'",
+    ].join("; ")
+  );
+
+  return response;
 }
 
 export const config = {
@@ -175,12 +294,6 @@ export const config = {
     "/admin-portal/:path*",
     "/teacher-portal/:path*",
     "/student-portal/:path*",
-    "/api/students/:path*",
-    "/api/results/:path*",
-    "/api/sessions/:path*",
-    "/api/auth/change-password",
-    "/api/auth/student-logout",
-    "/api/auth/admin-logout",
-    "/api/auth/teacher-logout",
+    "/api/:path*",
   ],
 };

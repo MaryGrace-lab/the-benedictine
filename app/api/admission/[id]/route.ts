@@ -1,5 +1,7 @@
+// app/api/admission/[id]/route.ts
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { getAdminFromSession } from "@/lib/jwt";
 import { sendEmail, statusUpdateEmail } from "@/lib/email";
 
 export async function GET(
@@ -7,6 +9,15 @@ export async function GET(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    // Require admin authentication
+    const adminSession = await getAdminFromSession();
+    if (!adminSession || adminSession.role !== "ADMIN") {
+      return NextResponse.json(
+        { error: "Admin access required" },
+        { status: 401 }
+      );
+    }
+
     const { id } = await params;
 
     const application = await prisma.admissionApplication.findUnique({
@@ -35,6 +46,15 @@ export async function PATCH(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    // Require admin authentication
+    const adminSession = await getAdminFromSession();
+    if (!adminSession || adminSession.role !== "ADMIN") {
+      return NextResponse.json(
+        { error: "Admin access required" },
+        { status: 401 }
+      );
+    }
+
     const { id } = await params;
     const body = await request.json();
     const { status, notes } = body;
@@ -59,7 +79,7 @@ export async function PATCH(
       data: updateData,
     });
 
-    // Send status update email
+    // Send status update email (fire-and-forget)
     if (status) {
       const messages: Record<string, string> = {
         UNDER_REVIEW: "Your application is being reviewed by our admission committee.",

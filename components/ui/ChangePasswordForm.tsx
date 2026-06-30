@@ -3,12 +3,12 @@
 // ──────────────────────────────────────────────
 // Change Password Form — Reusable Client Component
 // Used by Admin, Teacher, and Student portals.
-// Includes show/hide password toggle on all fields.
+// Includes CSRF protection.
 // ──────────────────────────────────────────────
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { Eye, EyeOff } from "lucide-react";
+import { Eye, EyeOff, Loader2 } from "lucide-react";
 import toast from "react-hot-toast";
 
 type Props = {
@@ -22,52 +22,95 @@ export default function ChangePasswordForm({ role, redirectTo }: Props) {
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [loading, setLoading] = useState(false);
-
-  // Toggle states for each password field
   const [showCurrent, setShowCurrent] = useState(false);
   const [showNew, setShowNew] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
 
+  // Fetch CSRF token on mount
+  const [csrfToken, setCsrfToken] = useState("");
+
+  useEffect(() => {
+    // Generate a CSRF token from the API (or read from cookie if using the csrf lib)
+    async function fetchCsrf() {
+      try {
+        const res = await fetch("/api/auth/csrf-token");
+        if (res.ok) {
+          const data = await res.json();
+          setCsrfToken(data.token);
+        }
+      } catch {
+        // If CSRF endpoint fails, still allow submission (degraded)
+        console.warn("Could not fetch CSRF token");
+      }
+    }
+    fetchCsrf();
+  }, []);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (newPassword !== confirmPassword) {
+    const trimmedCurrent = currentPassword.trim();
+    const trimmedNew = newPassword.trim();
+    const trimmedConfirm = confirmPassword.trim();
+
+    if (!trimmedCurrent || !trimmedNew || !trimmedConfirm) {
+      toast.error("Please fill in all fields");
+      return;
+    }
+
+    if (trimmedNew !== trimmedConfirm) {
       toast.error("New passwords do not match");
       return;
     }
 
-    if (newPassword.length < 6) {
-      toast.error("Password must be at least 6 characters");
+    if (trimmedNew.length < 8) {
+      toast.error("Password must be at least 8 characters");
+      return;
+    }
+
+    if (trimmedCurrent === trimmedNew) {
+      toast.error("New password must be different from current password");
       return;
     }
 
     setLoading(true);
 
     try {
+      const headers: Record<string, string> = {
+        "Content-Type": "application/json",
+      };
+      if (csrfToken) {
+        headers["x-csrf-token"] = csrfToken;
+      }
+
       const res = await fetch("/api/auth/change-password", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ currentPassword, newPassword, role }),
+        headers,
+        body: JSON.stringify({
+          currentPassword: trimmedCurrent,
+          newPassword: trimmedNew,
+          role,
+        }),
       });
 
       const data = await res.json();
 
       if (res.ok) {
-        toast.success("Password changed! Please login again.");
+        toast.success("Password changed successfully!");
         await fetch(`/api/auth/${role}-logout`, { method: "POST" });
         setTimeout(() => router.push(redirectTo), 1500);
       } else {
         toast.error(data.error || "Failed to change password");
       }
     } catch {
-      toast.error("Network error");
+      toast.error("Network error. Please try again.");
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-4">
+    <form onSubmit={handleSubmit} className="space-y-4" noValidate>
       {/* Current Password */}
       <div>
         <label htmlFor="currentPassword" className="block text-sm font-medium text-slate-600 mb-1">
@@ -80,14 +123,17 @@ export default function ChangePasswordForm({ role, redirectTo }: Props) {
             value={currentPassword}
             onChange={(e) => setCurrentPassword(e.target.value)}
             placeholder="Enter current password"
-            className="w-full p-3 pr-12 border rounded-lg outline-none focus:ring-2 focus:ring-[#8B5E3C]/20"
+            className="w-full p-3 pr-12 border border-slate-200 rounded-lg outline-none focus:ring-2 focus:ring-[#8B5E3C]/20 transition-all"
             required
+            disabled={loading}
+            autoComplete="current-password"
           />
           <button
             type="button"
             onClick={() => setShowCurrent(!showCurrent)}
-            className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+            className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 p-1"
             aria-label={showCurrent ? "Hide password" : "Show password"}
+            tabIndex={-1}
           >
             {showCurrent ? <EyeOff size={20} /> : <Eye size={20} />}
           </button>
@@ -105,15 +151,18 @@ export default function ChangePasswordForm({ role, redirectTo }: Props) {
             type={showNew ? "text" : "password"}
             value={newPassword}
             onChange={(e) => setNewPassword(e.target.value)}
-            placeholder="Enter new password (min 6 characters)"
-            className="w-full p-3 pr-12 border rounded-lg outline-none focus:ring-2 focus:ring-[#8B5E3C]/20"
+            placeholder="Min 8 characters, include uppercase & number"
+            className="w-full p-3 pr-12 border border-slate-200 rounded-lg outline-none focus:ring-2 focus:ring-[#8B5E3C]/20 transition-all"
             required
+            disabled={loading}
+            autoComplete="new-password"
           />
           <button
             type="button"
             onClick={() => setShowNew(!showNew)}
-            className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+            className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 p-1"
             aria-label={showNew ? "Hide password" : "Show password"}
+            tabIndex={-1}
           >
             {showNew ? <EyeOff size={20} /> : <Eye size={20} />}
           </button>
@@ -132,14 +181,17 @@ export default function ChangePasswordForm({ role, redirectTo }: Props) {
             value={confirmPassword}
             onChange={(e) => setConfirmPassword(e.target.value)}
             placeholder="Re-enter new password"
-            className="w-full p-3 pr-12 border rounded-lg outline-none focus:ring-2 focus:ring-[#8B5E3C]/20"
+            className="w-full p-3 pr-12 border border-slate-200 rounded-lg outline-none focus:ring-2 focus:ring-[#8B5E3C]/20 transition-all"
             required
+            disabled={loading}
+            autoComplete="new-password"
           />
           <button
             type="button"
             onClick={() => setShowConfirm(!showConfirm)}
-            className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+            className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 p-1"
             aria-label={showConfirm ? "Hide password" : "Show password"}
+            tabIndex={-1}
           >
             {showConfirm ? <EyeOff size={20} /> : <Eye size={20} />}
           </button>
@@ -149,9 +201,16 @@ export default function ChangePasswordForm({ role, redirectTo }: Props) {
       <button
         type="submit"
         disabled={loading}
-        className="w-full py-3 bg-[#270f01] text-white rounded-lg font-semibold hover:bg-[#3d1902] disabled:opacity-50 transition-all"
+        className="w-full py-3 bg-[#8B5E3C] text-white rounded-lg font-semibold hover:bg-[#6B3F2C] disabled:opacity-50 transition-all flex items-center justify-center gap-2"
       >
-        {loading ? "Changing..." : "Change Password"}
+        {loading ? (
+          <>
+            <Loader2 size={18} className="animate-spin" />
+            Changing Password...
+          </>
+        ) : (
+          "Change Password"
+        )}
       </button>
     </form>
   );

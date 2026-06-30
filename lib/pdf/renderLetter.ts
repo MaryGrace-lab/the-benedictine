@@ -1,4 +1,5 @@
-import { renderToStream } from "@react-pdf/renderer";
+// lib/pdf/renderLetter.ts
+import { renderToBuffer } from "@react-pdf/renderer";
 import AdmissionLetter from "./AdmissionLetter";
 
 export async function generateAdmissionLetterPDF(data: {
@@ -9,9 +10,9 @@ export async function generateAdmissionLetterPDF(data: {
   parentName: string;
   date: string;
 }) {
-  const stream = await renderToStream(
-    AdmissionLetter(data)
-  );
-
-  return stream;
+  // Use renderToBuffer instead of renderToStream
+  // Returns a Buffer which works perfectly with Next.js Response
+  const buffer = await renderToBuffer(AdmissionLetter(data));
+  
+  return buffer;
 }

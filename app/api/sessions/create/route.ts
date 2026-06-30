@@ -3,9 +3,11 @@
 // Create Session API — Admin Only
 // ──────────────────────────────────────────────
 
+
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getAdminFromSession } from "@/lib/jwt";
+import { Term } from "@prisma/client";
 
 export async function POST(req: Request) {
   try {
@@ -18,11 +20,14 @@ export async function POST(req: Request) {
     const { year, term, isActive } = await req.json();
 
     if (!year || !term) {
-      return NextResponse.json({ error: "Year and term are required" }, { status: 400 });
+      return NextResponse.json(
+        { error: "Year and term are required" },
+        { status: 400 }
+      );
     }
 
-    const validTerms = ["FIRST", "SECOND", "THIRD"];
-    const normalizedTerm = term.toUpperCase().trim();
+    const validTerms: Term[] = ["FIRST", "SECOND", "THIRD"];
+    const normalizedTerm = term.toUpperCase().trim() as Term;
 
     if (!validTerms.includes(normalizedTerm)) {
       return NextResponse.json(
@@ -31,7 +36,6 @@ export async function POST(req: Request) {
       );
     }
 
-    // Deactivate all others if this one is active
     if (isActive) {
       await prisma.academicSession.updateMany({
         where: { isActive: true },
@@ -42,9 +46,9 @@ export async function POST(req: Request) {
     const session = await prisma.academicSession.create({
       data: {
         year: year.trim(),
-        term: normalizedTerm as any,
+        term: normalizedTerm,
         isActive: !!isActive,
-      } as any,
+      },
     });
 
     return NextResponse.json({
@@ -58,6 +62,9 @@ export async function POST(req: Request) {
     });
   } catch (error) {
     console.error("Session creation error:", error);
-    return NextResponse.json({ error: "Failed to create session" }, { status: 500 });
+    return NextResponse.json(
+      { error: "Failed to create session" },
+      { status: 500 }
+    );
   }
 }

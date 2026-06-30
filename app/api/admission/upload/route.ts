@@ -1,3 +1,4 @@
+//app/api/admission/upload/route.ts
 import { NextRequest, NextResponse } from "next/server";
 import { validateFile, uploadToStorage } from "@/lib/supabase-storage";
 

@@ -1,7 +1,4 @@
-// ──────────────────────────────────────────────
-// Prisma Client — Works with both local & cloud
-// ──────────────────────────────────────────────
-
+// lib/prisma.ts
 import { PrismaClient } from "@prisma/client";
 import { PrismaNeon } from "@prisma/adapter-neon";
 
@@ -12,18 +9,13 @@ const globalForPrisma = globalThis as unknown as {
 function createPrismaClient(): PrismaClient {
   const url = process.env.DATABASE_URL!;
 
-  // Use Neon adapter for Supabase/Neon URLs
-  if (url.includes("neon.tech") || url.includes("pooler.supabase.com")) {
-    const adapter = new PrismaNeon({ connectionString: url });
-    return new PrismaClient({
-      adapter,
-      log: ["error", "warn"],
-    });
-  }
+  // Use the pooler URL with the Neon adapter – already includes
+  // pgBouncer=true and the timeout/limit parameters from .env
+  const adapter = new PrismaNeon({ connectionString: url });
 
-  // Use direct connection for local PostgreSQL
   return new PrismaClient({
-    log: ["error", "warn"],
+    adapter,
+    log: process.env.NODE_ENV === "production" ? ["error"] : ["error", "warn"],
   });
 }
 

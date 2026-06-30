@@ -1,3 +1,4 @@
+//app/(public)/admission/track/page.tsx
 import type { Metadata } from "next";
 import { TrackApplicationClient } from "./_components/TrackApplicationClient";
 

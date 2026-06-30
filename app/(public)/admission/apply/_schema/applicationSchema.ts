@@ -1,3 +1,4 @@
+//app/(public)/admission/apply/_schema/applicationSchema.ts
 import { z } from "zod";
 
 export const personalInfoSchema = z.object({

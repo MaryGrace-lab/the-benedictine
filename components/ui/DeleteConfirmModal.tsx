@@ -1,6 +1,7 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
+import { Loader2, AlertTriangle } from "lucide-react";
 
 type Props = {
   isOpen: boolean;
@@ -25,18 +26,37 @@ export default function DeleteConfirmModal({
   const [deleting, setDeleting] = useState(false);
   const [error, setError] = useState("");
 
+  // Reset state when modal opens/closes
+  useEffect(() => {
+    if (isOpen) {
+      setConfirmText("");
+      setError("");
+      setDeleting(false);
+    }
+  }, [isOpen]);
+
+  // Close on Escape key
+  useEffect(() => {
+    const handleEscape = (e: KeyboardEvent) => {
+      if (e.key === "Escape" && isOpen && !deleting) {
+        onClose();
+      }
+    };
+    document.addEventListener("keydown", handleEscape);
+    return () => document.removeEventListener("keydown", handleEscape);
+  }, [isOpen, deleting, onClose]);
+
   if (!isOpen) return null;
 
   const isStudent = type === "student";
   const title = isStudent ? "Student" : "Session";
-  const idLabel = isStudent ? "Card ID" : "Session";
   const endpoint = isStudent ? "/api/students/delete" : "/api/sessions/delete";
   const body = isStudent
     ? { studentId, confirmation: confirmText }
     : { sessionId: studentId, confirmation: confirmText };
   const warningText = isStudent
-    ? "This will delete ALL records: results, behaviour, attendance, and summary for this student."
-    : "This will delete the session. Sessions with existing results cannot be deleted.";
+    ? "This will permanently delete ALL records for this student including results, behaviour reports, attendance, and summaries."
+    : "This will permanently delete the session.";
 
   const handleDelete = async () => {
     if (confirmText !== "DELETE") {
@@ -59,41 +79,42 @@ export default function DeleteConfirmModal({
       if (res.ok) {
         onDeleted();
         onClose();
-        setConfirmText("");
       } else {
         setError(data.error || `Failed to delete ${title.toLowerCase()}`);
+        setDeleting(false);
       }
     } catch {
-      setError("Network error");
-    } finally {
+      setError("Network error. Please try again.");
       setDeleting(false);
     }
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50">
+    <div 
+      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50"
+      onClick={(e) => {
+        if (e.target === e.currentTarget && !deleting) onClose();
+      }}
+    >
       <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-6">
         <div className="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
-          <svg className="w-6 h-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth={2}
-              d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z"
-            />
-          </svg>
+          <AlertTriangle size={24} className="text-red-600" />
         </div>
 
         <h2 className="text-xl font-bold text-center text-slate-900 mb-2">
-          ⚠️ Delete {title}
+          Delete {title}
         </h2>
         <p className="text-center text-red-600 font-semibold text-sm mb-4">
           This action is permanent and cannot be undone!
         </p>
 
         <div className="bg-red-50 border border-red-200 rounded-xl p-4 mb-4 text-sm text-slate-700 space-y-1">
-          <p><span className="font-semibold">{title}:</span> {studentName}</p>
-          <p><span className="font-semibold">{idLabel}:</span> {cardId}</p>
+          <p>
+            <span className="font-semibold">{title}:</span> {studentName}
+          </p>
+          <p>
+            <span className="font-semibold">{isStudent ? "Card ID" : "Session"}:</span> {cardId}
+          </p>
           <p className="text-red-600 text-xs mt-2">{warningText}</p>
         </div>
 
@@ -110,8 +131,10 @@ export default function DeleteConfirmModal({
               setError("");
             }}
             placeholder="Type DELETE here"
-            className="w-full p-2.5 border border-slate-300 rounded-lg text-sm font-mono"
+            className="w-full p-2.5 border border-slate-300 rounded-lg text-sm font-mono focus:ring-2 focus:ring-red-500/20 focus:border-red-500 outline-none transition-all"
             autoFocus
+            disabled={deleting}
+            autoComplete="off"
           />
           {error && <p className="text-red-500 text-xs mt-1">{error}</p>}
         </div>
@@ -127,9 +150,16 @@ export default function DeleteConfirmModal({
           <button
             onClick={handleDelete}
             disabled={confirmText !== "DELETE" || deleting}
-            className="flex-1 py-2.5 bg-red-600 text-white rounded-lg font-semibold hover:bg-red-700 transition-all disabled:opacity-30 disabled:cursor-not-allowed"
+            className="flex-1 py-2.5 bg-red-600 text-white rounded-lg font-semibold hover:bg-red-700 transition-all disabled:opacity-30 disabled:cursor-not-allowed flex items-center justify-center gap-2"
           >
-            {deleting ? "Deleting..." : "Delete Permanently"}
+            {deleting ? (
+              <>
+                <Loader2 size={16} className="animate-spin" />
+                Deleting...
+              </>
+            ) : (
+              "Delete Permanently"
+            )}
           </button>
         </div>
       </div>

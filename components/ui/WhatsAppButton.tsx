@@ -5,7 +5,7 @@
 // Pulsing ring animation + tooltip
 // ──────────────────────────────────────────────
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 
 export default function WhatsAppButton() {
   const phoneNumber = "2347059443788";
@@ -14,10 +14,10 @@ export default function WhatsAppButton() {
   const [showTooltip, setShowTooltip] = useState(true);
 
   // Hide tooltip after 5 seconds
-  useState(() => {
+useEffect(() => {
     const timer = setTimeout(() => setShowTooltip(false), 8000);
     return () => clearTimeout(timer);
-  });
+}, []);
 
   return (
     <div className="fixed bottom-24 right-6 z-50 flex flex-col items-end gap-2">

@@ -19,18 +19,18 @@ enum Term {
 }
 
 enum Grade {
-  A       // Distinction (90%+)
-  B       // Credit (70%+)
-  C       // Pass (50%+)
-  F       // Fail (Below 50%)
+  A // Distinction (90%+)
+  B // Credit (70%+)
+  C // Pass (50%+)
+  F // Fail (Below 50%)
 }
 
 enum Rating {
-  EXCELLENT   // 5
-  GOOD        // 4
-  AVERAGE     // 3
-  POOR        // 2
-  VERY_POOR   // 1
+  EXCELLENT // 5
+  GOOD // 4
+  AVERAGE // 3
+  POOR // 2
+  VERY_POOR // 1
 }
 
 enum Evaluation {
@@ -65,146 +65,162 @@ enum ApplicationStatus {
   ADMITTED
 }
 
-
-
 // ── Models ──
 
 model User {
-  id            String    @id @default(cuid())
-  name          String
-  email         String    @unique
-  password      String
-  role          Role
-  assignedClass String?   // For TEACHER role only
-  admissionApplications  AdmissionApplication[]
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
+  id                    String                 @id @default(cuid())
+  name                  String
+  email                 String                 @unique
+  password              String
+  role                  Role
+  assignedClass         String? // For TEACHER role only
+  lastLoginAt           DateTime?
+  lastLoginIp           String?
+  loginAttempts         Int                    @default(0)
+  lockedUntil           DateTime?
+  admissionApplications AdmissionApplication[]
+  createdAt             DateTime               @default(now())
+  updatedAt             DateTime               @updatedAt
+
+  @@index([email])
 }
 
 model AcademicSession {
-  id               String             @id @default(cuid())
+  id               String            @id @default(cuid())
   year             String
   term             Term
-  isActive         Boolean            @default(false)
+  isActive         Boolean           @default(false)
   results          Result[]
   socialBehaviours SocialBehaviour[]
   attendances      Attendance[]
   resultSummaries  ResultSummary[]
-  createdAt        DateTime           @default(now())
-  updatedAt        DateTime           @updatedAt
+  createdAt        DateTime          @default(now())
+  updatedAt        DateTime          @updatedAt
+
+  @@index([year, term])
+  @@index([isActive])
 }
 
 model Student {
-  id                String             @id @default(cuid())
-  studentId         String             @unique
-  password          String
-  firstName         String
-  lastName          String
-  class             String
-  studentType       StudentType?       // SCIENCE, ART, COMMERCIAL — for SSS only
-  guardianName      String?
-  guardianPhone     String?
-  results           Result[]
-  socialBehaviours  SocialBehaviour[]
-  attendances       Attendance[]
-  resultSummaries   ResultSummary[]
-  createdAt         DateTime           @default(now())
-  updatedAt         DateTime           @updatedAt
+  id                    String            @id @default(cuid())
+  studentId             String            @unique
+  password              String
+  firstName             String
+  lastName              String
+  class                 String
+  studentType           StudentType? // SCIENCE, ART, COMMERCIAL — for SSS only
+  guardianName          String?
+  guardianPhone         String?
+  passwordResetRequired Boolean           @default(true)
+  results               Result[]
+  passwordHistories     PasswordHistory[]
+  socialBehaviours      SocialBehaviour[]
+  attendances           Attendance[]
+  resultSummaries       ResultSummary[]
+  createdAt             DateTime          @default(now())
+  updatedAt             DateTime          @updatedAt
+
+  @@index([studentId])
+  @@index([class])
+  @@index([firstName, lastName])
 }
 
 model Subject {
-  id        String    @id @default(cuid())
-  name      String
-  level     String    @default("JSS")  // JSS, SSS
-  stream    String?                     // SCIENCE, ART, COMMERCIAL, ALL
-  results   Result[]
+  id      String   @id @default(cuid())
+  name    String
+  level   String   @default("JSS") // JSS, SSS
+  stream  String? // SCIENCE, ART, COMMERCIAL, ALL
+  results Result[]
 
   @@unique([name, level, stream])
+  @@index([level, stream])
 }
 
 model Result {
-  id          String          @id @default(cuid())
-  student     Student         @relation(fields: [studentId], references: [id], onDelete: Cascade)
-  studentId   String
-  subject     Subject         @relation(fields: [subjectId], references: [id])
-  subjectId   String
-  session     AcademicSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
-  sessionId   String
+  id        String          @id @default(cuid())
+  student   Student         @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  studentId String
+  subject   Subject         @relation(fields: [subjectId], references: [id])
+  subjectId String
+  session   AcademicSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  sessionId String
 
-  firstTest   Float?
-  secondTest  Float?
-  exam        Float?
-  total       Float?
-  grade       Grade?
+  firstTest  Float?
+  secondTest Float?
+  exam       Float?
+  total      Float?
+  grade      Grade?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@unique([studentId, subjectId, sessionId])
-
-  createdAt   DateTime        @default(now())
-  updatedAt   DateTime        @updatedAt
+  @@index([studentId, sessionId])
+  @@index([subjectId])
 }
 
 model SocialBehaviour {
-  id          String          @id @default(cuid())
-  student     Student         @relation(fields: [studentId], references: [id], onDelete: Cascade)
-  studentId   String
-  session     AcademicSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
-  sessionId   String
+  id        String          @id @default(cuid())
+  student   Student         @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  studentId String
+  session   AcademicSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  sessionId String
 
-  obedience             Rating?
-  honesty               Rating?
-  responsibility        Rating?
-  selfControl           Rating?
-  leadership            Rating?
+  obedience              Rating?
+  honesty                Rating?
+  responsibility         Rating?
+  selfControl            Rating?
+  leadership             Rating?
   relationshipWithOthers Rating?
-  gamesAndSports        Rating?
-  health                Rating?
-  neatness              Rating?
-  manipulativeSkill     Rating?
+  gamesAndSports         Rating?
+  health                 Rating?
+  neatness               Rating?
+  manipulativeSkill      Rating?
 
   totalCumulative Float?
   totalScored     Float?
   percentageAvg   Float?
   remark          String?
 
-  @@unique([studentId, sessionId])
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
-  createdAt   DateTime        @default(now())
-  updatedAt   DateTime        @updatedAt
+  @@unique([studentId, sessionId])
 }
 
 model Attendance {
-  id              String          @id @default(cuid())
-  student         Student         @relation(fields: [studentId], references: [id], onDelete: Cascade)
-  studentId       String
-  session         AcademicSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
-  sessionId       String
+  id        String          @id @default(cuid())
+  student   Student         @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  studentId String
+  session   AcademicSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  sessionId String
 
-  schoolOpened    Int?
-  schoolPresent   Int?
-  sportOpened     Int?
-  sportPresent    Int?
-  othersOpened    Int?
-  othersPresent   Int?
-  organizedActivitiesOpened Int?
+  schoolOpened               Int?
+  schoolPresent              Int?
+  sportOpened                Int?
+  sportPresent               Int?
+  othersOpened               Int?
+  othersPresent              Int?
+  organizedActivitiesOpened  Int?
   organizedActivitiesPresent Int?
 
-  remark          String?
+  remark String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@unique([studentId, sessionId])
-
-  createdAt       DateTime        @default(now())
-  updatedAt       DateTime        @updatedAt
 }
 
 model ResultSummary {
-  id              String          @id @default(cuid())
-  student         Student         @relation(fields: [studentId], references: [id], onDelete: Cascade)
-  studentId       String
-  session         AcademicSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
-  sessionId       String
+  id        String          @id @default(cuid())
+  student   Student         @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  studentId String
+  session   AcademicSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  sessionId String
 
-  noInClass       Int?
-  evaluation      Evaluation?
+  noInClass  Int?
+  evaluation Evaluation?
 
   totalCumulative Float?
   totalScore      Float?
@@ -212,88 +228,102 @@ model ResultSummary {
   remark          String?
 
   classTeacherComment String?
-  nextTermFees         String?
-  outstandingFees      String?
-  books                String?
-  nextTermBegins       String?
-  headTeacherComment   String?
-  parentName           String?
-  parentSignature      String?
-  date                 DateTime?
+  nextTermFees        String?
+  outstandingFees     String?
+  books               String?
+  nextTermBegins      String?
+  headTeacherComment  String?
+  parentName          String?
+  parentSignature     String?
+  date                DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@unique([studentId, sessionId])
-
-  createdAt         DateTime        @default(now())
-  updatedAt         DateTime        @updatedAt
 }
 
 model AdmissionApplication {
-  id                  String            @id @default(cuid())
-  registrationNumber  String?           @unique
-  status              ApplicationStatus @default(DRAFT)
-  currentStep         Int               @default(1)
+  id                 String            @id @default(cuid())
+  registrationNumber String?           @unique
+  status             ApplicationStatus @default(DRAFT)
+  currentStep        Int               @default(1)
 
   // Personal Info
-  surname             String
-  firstName           String
-  middleName          String?
-  gender              String
-  dateOfBirth         String
-  placeOfBirth        String
-  nationality         String            @default("Nigerian")
-  stateOfOrigin       String
-  lga                 String
-  religion            String
-  bloodGroup          String?
-  genotype            String?
+  surname       String
+  firstName     String
+  middleName    String?
+  gender        String
+  dateOfBirth   String
+  placeOfBirth  String
+  nationality   String  @default("Nigerian")
+  stateOfOrigin String
+  lga           String
+  religion      String
+  bloodGroup    String?
+  genotype      String?
 
   // Parent Info
-  fatherName          String
-  motherName          String
-  guardianName        String?
-  occupation          String
-  email               String
-  phoneNumber         String
-  alternatePhone      String?
-  residentialAddress  String
-  emergencyContact    String
-  emergencyPhone      String
+  fatherName         String
+  motherName         String
+  guardianName       String?
+  occupation         String
+  email              String
+  phoneNumber        String
+  alternatePhone     String?
+  residentialAddress String
+  emergencyContact   String
+  emergencyPhone     String
 
   // Academic Info
-  previousSchool      String?
-  previousClass       String?
-  applyingClass       String
-  session             String            @default("2026/2027")
+  previousSchool String?
+  previousClass  String?
+  applyingClass  String
+  session        String  @default("2026/2027")
 
   // Medical Info
-  allergies           String?
-  medicalConditions   String?
-  specialNeeds        String?
+  allergies            String?
+  medicalConditions    String?
+  specialNeeds         String?
   emergencyMedicalInfo String?
 
   // Documents
-  birthCertificate    String?
-  passportPhoto       String?
-  previousResult      String?
-  medicalReport       String?
+  birthCertificate     String?
+  passportPhoto        String?
+  previousResult       String?
+  medicalReport        String?
   recommendationLetter String?
 
   // Payment
-  paymentStatus       String            @default("PENDING")
-  paymentReference    String?
-  paymentAmount       Float?
+  paymentStatus    String  @default("PENDING")
+  paymentReference String?
+  paymentAmount    Float?
 
   // Relations
-  userId              String?
-  user                User?             @relation(fields: [userId], references: [id])
+  userId String?
+  user   User?   @relation(fields: [userId], references: [id])
 
   // Tracking
-  submittedAt         DateTime?
-  reviewedAt          DateTime?
-  decisionAt          DateTime?
-  admissionLetter     String?
-  notes               String?
+  submittedAt     DateTime?
+  reviewedAt      DateTime?
+  decisionAt      DateTime?
+  admissionLetter String?
+  notes           String?
 
-  createdAt           DateTime          @default(now())
-  updatedAt           DateTime          @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([email])
+  @@index([status])
+  @@index([registrationNumber])
+}
+
+model PasswordHistory {
+  id           String   @id @default(cuid())
+  student      Student  @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  studentId    String
+  passwordHash String
+  createdAt    DateTime @default(now())
+
+  @@index([studentId])
 }

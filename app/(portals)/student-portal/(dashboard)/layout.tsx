@@ -1,7 +1,7 @@
 // ──────────────────────────────────────────────
 // Student Portal Layout — Server Component
 // Wraps all student dashboard pages with sidebar.
-// Login page is excluded via route group (auth).
+// Mobile responsive with hamburger menu support.
 // ──────────────────────────────────────────────
 
 import type { Metadata } from "next";
@@ -19,12 +19,11 @@ export default function StudentPortalLayout({
 }) {
   return (
     <div className="flex min-h-screen bg-[#FAF7F2]">
-      {/* Fixed sidebar */}
       <StudentSidebar />
-
-      {/* Main content — offset to match sidebar width */}
-      <main className="flex-1 overflow-x-hidden ml-64 transition-all duration-300">
-        {children}
+      <main className="flex-1 w-full lg:ml-64 transition-all duration-300 p-4 sm:p-6 lg:p-8 pt-16 lg:pt-8">
+        <div className="max-w-7xl mx-auto">
+          {children}
+        </div>
       </main>
     </div>
   );

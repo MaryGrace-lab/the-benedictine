@@ -1,7 +1,5 @@
 // app/api/results/bulk-upload/route.ts
-// ──────────────────────────────────────────────
 // Bulk Upload API — Admin & Teacher
-// ──────────────────────────────────────────────
 
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
@@ -10,8 +8,8 @@ import { calculateSubjectResult, calculateResultSummary } from "@/lib/grading";
 import { getAdminFromSession, getTeacherFromSession } from "@/lib/jwt";
 
 const BulkUploadSchema = z.object({
-  sessionId: z.string().min(1),
-  class: z.string().min(1),
+  sessionId: z.string().min(1, "Session is required"),
+  class: z.string().min(1, "Class is required"),
   results: z.array(
     z.object({
       studentId: z.string().min(1),
@@ -22,14 +20,13 @@ const BulkUploadSchema = z.object({
           secondTest: z.number().min(0).max(20).nullable(),
           exam: z.number().min(0).max(60).nullable(),
         })
-      ),
+      ).min(1, "At least one subject score is required"),
     })
-  ),
+  ).min(1, "At least one student result is required"),
 });
 
 export async function POST(req: Request) {
   try {
-    // Allow both Admin and Teacher
     const adminSession = await getAdminFromSession();
     const teacherSession = await getTeacherFromSession();
 
@@ -37,7 +34,10 @@ export async function POST(req: Request) {
       (!adminSession || adminSession.role !== "ADMIN") &&
       (!teacherSession || teacherSession.role !== "TEACHER")
     ) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+      return NextResponse.json(
+        { error: "Unauthorized" },
+        { status: 401 }
+      );
     }
 
     const body = await req.json();
@@ -45,107 +45,125 @@ export async function POST(req: Request) {
 
     if (!validation.success) {
       return NextResponse.json(
-        { error: "Validation failed", details: validation.error.flatten().fieldErrors },
+        { 
+          error: "Validation failed", 
+          details: validation.error.flatten().fieldErrors 
+        },
         { status: 400 }
       );
     }
 
-    const { sessionId, results } = validation.data;
+    const { sessionId, class: className, results } = validation.data;
+
+    // Teacher: verify class access
+    if (teacherSession && teacherSession.assignedClass !== className) {
+      return NextResponse.json(
+        { error: "You can only upload results for your assigned class" },
+        { status: 403 }
+      );
+    }
+
     let processed = 0;
     let failed = 0;
+    const errors: string[] = [];
 
-    await prisma.$transaction(
-      async (tx) => {
-        for (const studentResult of results) {
-          try {
-            const student = await tx.student.findUnique({
-              where: { studentId: studentResult.studentId },
-            });
+    await prisma.$transaction(async (tx) => {
+      for (const studentResult of results) {
+        try {
+          const student = await tx.student.findUnique({
+            where: { studentId: studentResult.studentId },
+            select: { id: true, class: true },
+          });
 
-            if (!student) {
-              failed++;
-              continue;
-            }
+          if (!student || student.class !== className) {
+            failed++;
+            errors.push(`${studentResult.studentId}: Student not found or not in ${className}`);
+            continue;
+          }
 
-            const subjectTotals: (number | null)[] = [];
+          const subjectTotals: (number | null)[] = [];
 
-            for (const score of studentResult.scores) {
-              const calculation = calculateSubjectResult(
-                score.firstTest,
-                score.secondTest,
-                score.exam
-              );
+          for (const score of studentResult.scores) {
+            const calculation = calculateSubjectResult(
+              score.firstTest,
+              score.secondTest,
+              score.exam
+            );
 
-              await tx.result.upsert({
-                where: {
-                  studentId_subjectId_sessionId: {
-                    studentId: student.id,
-                    subjectId: score.subjectId,
-                    sessionId,
-                  },
-                },
-                update: {
-                  firstTest: score.firstTest,
-                  secondTest: score.secondTest,
-                  exam: score.exam,
-                  total: calculation.total,
-                  grade: calculation.grade,
-                },
-                create: {
+            await tx.result.upsert({
+              where: {
+                studentId_subjectId_sessionId: {
                   studentId: student.id,
                   subjectId: score.subjectId,
-                  sessionId,
-                  firstTest: score.firstTest,
-                  secondTest: score.secondTest,
-                  exam: score.exam,
-                  total: calculation.total,
-                  grade: calculation.grade,
-                } as any,
-              });
-
-              subjectTotals.push(calculation.total);
-            }
-
-            const summary = calculateResultSummary(subjectTotals);
-            await tx.resultSummary.upsert({
-              where: {
-                studentId_sessionId: {
-                  studentId: student.id,
                   sessionId,
                 },
               },
               update: {
-                totalCumulative: summary.totalCumulative,
-                totalScore: summary.totalScore,
-                percentageAvg: summary.percentageAvg,
-                remark: summary.remark,
+                firstTest: score.firstTest,
+                secondTest: score.secondTest,
+                exam: score.exam,
+                total: calculation.total,
+                grade: calculation.grade,
               },
               create: {
                 studentId: student.id,
+                subjectId: score.subjectId,
                 sessionId,
-                totalCumulative: summary.totalCumulative,
-                totalScore: summary.totalScore,
-                percentageAvg: summary.percentageAvg,
-                remark: summary.remark,
-              } as any,
+                firstTest: score.firstTest,
+                secondTest: score.secondTest,
+                exam: score.exam,
+                total: calculation.total,
+                grade: calculation.grade,
+              },
             });
 
-            processed++;
-          } catch {
-            failed++;
+            subjectTotals.push(calculation.total);
           }
+
+          const summary = calculateResultSummary(subjectTotals);
+          await tx.resultSummary.upsert({
+            where: {
+              studentId_sessionId: {
+                studentId: student.id,
+                sessionId,
+              },
+            },
+            update: {
+              totalCumulative: summary.totalCumulative,
+              totalScore: summary.totalScore,
+              percentageAvg: summary.percentageAvg,
+              remark: summary.remark,
+            },
+            create: {
+              studentId: student.id,
+              sessionId,
+              totalCumulative: summary.totalCumulative,
+              totalScore: summary.totalScore,
+              percentageAvg: summary.percentageAvg,
+              remark: summary.remark,
+            },
+          });
+
+          processed++;
+        } catch {
+          failed++;
+          errors.push(`${studentResult.studentId}: Processing error`);
         }
-      },
-      { timeout: 60000 }
-    );
+      }
+    });
 
     return NextResponse.json({
       success: true,
       processed,
       failed,
+      errors: errors.length > 0 ? errors.slice(0, 10) : undefined, // Limit error messages
+      message: `Processed ${processed} students, ${failed} failed`,
     });
   } catch (error) {
     console.error("Bulk upload error:", error);
-    return NextResponse.json({ error: "Failed to process bulk upload" }, { status: 500 });
+    return NextResponse.json(
+      { error: "Failed to process bulk upload" },
+      { status: 500 }
+    );
   }
 }
