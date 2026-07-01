@@ -25,10 +25,11 @@ export const homeAnnouncements: HomeAnnouncement[] = [
   {
     id: 1,
     category: 'academic',
-    date: '2026-04-15',
+    date: '2026-07-10', // YYYY-MM-DD
     title: 'School Resumption',
-    content: 'School will resume on 27th of April 2026.',
+    content: 'School will vacate on 10th of July 2026.',
   },
+
 ];
 
 // ---------- Highlights ----------

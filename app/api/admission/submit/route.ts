@@ -65,7 +65,7 @@ export async function POST(req: Request) {
 
     const data = validation.data;
 
-    // Optional: Prevent accidental duplicate for the *same* child
+    // Prevent duplicate child application
     const duplicate = await prisma.admissionApplication.findFirst({
       where: {
         email: data.email,
@@ -83,7 +83,6 @@ export async function POST(req: Request) {
       );
     }
 
-    // Generate registration number
     const year = new Date().getFullYear();
     const count = await prisma.admissionApplication.count();
     const registrationNumber = `TBA/${year}/${String(count + 1).padStart(4, "0")}`;
@@ -132,32 +131,43 @@ export async function POST(req: Request) {
       },
     });
 
-    // Send confirmation to parent
-    const emailData = applicationSubmittedEmail({
-      parentName: data.fatherName,
-      childName: `${data.surname} ${data.firstName}`,
-      registrationNumber: application.registrationNumber!,
-      applyingClass: data.applyingClass,
-      session: data.session,
-    });
-    sendEmail({ to: data.email, ...emailData });
+    // 1. Parent confirmation email
+    try {
+      const parentEmail = applicationSubmittedEmail({
+        parentName: data.fatherName,
+        childName: `${data.surname} ${data.firstName}`,
+        registrationNumber: application.registrationNumber!,
+        applyingClass: data.applyingClass,
+        session: data.session,
+      });
+      await sendEmail({ to: data.email, ...parentEmail });
+    } catch (e) {
+      console.error("Parent email failed:", e);
+    }
 
-    // Send alert to school
-    sendEmail({
-      to: "thebenedictineacademy@gmail.com",
-      subject: `New Application – ${application.registrationNumber}`,
-      html: `
-        <p>A new admission application has been submitted:</p>
-        <p><strong>Student:</strong> ${data.surname} ${data.firstName}</p>
-        <p><strong>Class:</strong> ${data.applyingClass}</p>
-        <p><strong>Registration:</strong> ${application.registrationNumber}</p>
-        <p>
-          <a href="${process.env.NEXT_PUBLIC_APP_URL}/admin-portal/admission">
-            Review in Admin Portal
-          </a>
-        </p>
-      `,
-    });
+    // 2. School notification – this is the critical one that was missing
+    try {
+      const schoolResult = await sendEmail({
+        to: "thebenedictineacademy@gmail.com",
+        subject: `New Application – ${application.registrationNumber}`,
+        html: `
+          <p>A new admission application has been submitted:</p>
+          <p><strong>Student:</strong> ${data.surname} ${data.firstName}</p>
+          <p><strong>Class:</strong> ${data.applyingClass}</p>
+          <p><strong>Registration:</strong> ${application.registrationNumber}</p>
+          <p>
+            <a href="${process.env.NEXT_PUBLIC_APP_URL}/admin-portal/admission">
+              Review in Admin Portal
+            </a>
+          </p>
+        `,
+      });
+      if (!schoolResult.success) {
+        console.error("School notification failed to send. Resend returned false.");
+      }
+    } catch (e) {
+      console.error("School notification email error:", e);
+    }
 
     return NextResponse.json({
       success: true,

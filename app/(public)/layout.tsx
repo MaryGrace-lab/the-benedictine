@@ -5,6 +5,7 @@ import Header from '@/components/PublicLayout/Header';
 import MobileMenu from '@/components/PublicLayout/MobileMenu';
 import Footer from '@/components/PublicLayout/Footer';
 import WhatsAppButton from "@/components/ui/WhatsAppButton";
+import ChatAssistant from '@/components/ui/ChatAssistant';
 
 export default function PublicLayout({ children }: { children: React.ReactNode }) {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
@@ -60,6 +61,7 @@ export default function PublicLayout({ children }: { children: React.ReactNode }
       <main className="flex-1 pt-16 md:pt-20">{children}</main>
       <Footer />
       <WhatsAppButton />
+      <ChatAssistant />
     </div>
   );
 }

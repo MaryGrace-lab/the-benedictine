@@ -13,6 +13,7 @@ const secret = new TextEncoder().encode(process.env.JWT_SECRET);
 
 // Initialize Upstash Redis for rate limiting
 const redis = Redis.fromEnv();
+
 const authRatelimit = new Ratelimit({
   redis,
   limiter: Ratelimit.slidingWindow(5, "15 m"), // 5 attempts per 15 minutes
@@ -25,6 +26,14 @@ const publicRatelimit = new Ratelimit({
   limiter: Ratelimit.slidingWindow(10, "1 h"), // 10 submissions per hour
   analytics: true,
   prefix: "ratelimit:public",
+});
+
+// ── NEW: dedicated rate limiter for the AI chatbot ──
+const chatRatelimit = new Ratelimit({
+  redis,
+  limiter: Ratelimit.slidingWindow(20, "1 m"), // 20 messages per minute per IP
+  analytics: true,
+  prefix: "ratelimit:chat",
 });
 
 type TokenPayload = {
@@ -157,12 +166,34 @@ export async function proxy(request: NextRequest) {
       return NextResponse.next();
     }
 
+    // ── CHAT ENDPOINT (Public, higher rate limit) ──
+    if (pathname === "/api/chat" && request.method === "POST") {
+      const { success, limit, reset, remaining } = await chatRatelimit.limit(ip);
+
+      if (!success) {
+        return NextResponse.json(
+          { error: "You are sending too many messages. Please wait a moment." },
+          { 
+            status: 429,
+            headers: {
+              "Retry-After": String(Math.ceil((reset - Date.now()) / 1000)),
+              "X-RateLimit-Limit": String(limit),
+              "X-RateLimit-Remaining": String(remaining),
+            }
+          }
+        );
+      }
+
+      return NextResponse.next();
+    }
+
     // ── PUBLIC ENDPOINTS ──
     const publicEndpoints = [
       "/api/contact",
       "/api/admission/submit",
       "/api/admission/applications",
       "/api/admission/upload",
+      "/api/chat",                      // included for completeness
     ];
 
     if (publicEndpoints.some((endpoint) => pathname.startsWith(endpoint))) {
