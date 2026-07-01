@@ -4,6 +4,7 @@
 // Student Login Page — Client Component
 // Login form with forgot password flow.
 // Password is revealed with copy functionality and security warning.
+// PWA install prompt included.
 // ──────────────────────────────────────────────
 
 import React, { useState } from "react";
@@ -12,6 +13,7 @@ import { Eye, EyeOff, Loader2, Copy, Check } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import toast, { Toaster } from "react-hot-toast";
+import InstallPrompt from "@/components/ui/InstallPrompt";
 
 type ResetResult = {
   success: boolean;
@@ -38,11 +40,9 @@ export default function StudentLoginPage() {
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    // Trim inputs
     const trimmedStudentId = studentId.trim();
     const trimmedPassword = password.trim();
 
-    // Validation
     if (!trimmedStudentId || !trimmedPassword) {
       toast.error("Please fill in all fields");
       return;
@@ -54,9 +54,9 @@ export default function StudentLoginPage() {
       const res = await fetch("/api/auth/student-login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ 
-          studentId: trimmedStudentId, 
-          password: trimmedPassword 
+        body: JSON.stringify({
+          studentId: trimmedStudentId,
+          password: trimmedPassword,
         }),
       });
 
@@ -78,11 +78,9 @@ export default function StudentLoginPage() {
   const handleForgotPassword = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    // Trim inputs
     const trimmedStudentId = forgotStudentId.trim();
     const trimmedLastName = forgotLastName.trim();
 
-    // Validation
     if (!trimmedStudentId || !trimmedLastName) {
       toast.error("Please fill in all fields");
       return;
@@ -95,9 +93,9 @@ export default function StudentLoginPage() {
       const res = await fetch("/api/auth/forgot-password", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ 
-          studentId: trimmedStudentId, 
-          lastName: trimmedLastName 
+        body: JSON.stringify({
+          studentId: trimmedStudentId,
+          lastName: trimmedLastName,
         }),
       });
 
@@ -140,9 +138,21 @@ export default function StudentLoginPage() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-slate-50 p-4">
-      <Toaster 
-        position="top-center" 
+    <div className="min-h-screen flex flex-col items-center justify-center p-4 relative">
+      {/* Background image with overlay */}
+      <div className="absolute inset-0 z-0">
+        <Image
+          src="/1.jpg"
+          alt="School background"
+          fill
+          className="object-cover"
+          priority
+        />
+        <div className="absolute inset-0 bg-black/60" />
+      </div>
+
+      <Toaster
+        position="top-center"
         toastOptions={{
           duration: 3000,
           style: {
@@ -153,224 +163,217 @@ export default function StudentLoginPage() {
         }}
       />
 
-      <div className="bg-white p-8 rounded-2xl shadow-lg max-w-md w-full">
-        {!showForgot ? (
-          <>
-            {/* Logo */}
-            <Image
-              src="/logo.jpg"
-              alt="School Logo"
-              width={64}
-              height={64}
-              className="mx-auto mb-4 rounded-full"
-              priority
-            />
+      <div className="relative z-10 flex flex-col items-center w-full">
+        <InstallPrompt />
 
-            <h1 className="text-2xl font-bold text-center text-slate-800 mb-2">
-              Student Portal
-            </h1>
-            <p className="text-center text-slate-500 text-sm mb-6">
-              Enter your Card ID and password to view results
-            </p>
+        <div className="bg-white p-8 rounded-2xl shadow-lg max-w-md w-full">
+          {!showForgot ? (
+            <>
+              <Image
+                src="/logo.jpg"
+                alt="School Logo"
+                width={64}
+                height={64}
+                className="mx-auto mb-4 rounded-full"
+                priority
+              />
 
-            <form onSubmit={handleLogin} className="space-y-4" noValidate>
-              {/* Card ID */}
-              <div>
-                <label htmlFor="card-id" className="block text-sm font-medium text-slate-600 mb-1">
-                  Card ID
-                </label>
-                <input
-                  id="card-id"
-                  type="text"
-                  value={studentId}
-                  onChange={(e) => setStudentId(e.target.value)}
-                  placeholder="e.g. BA-2025-0001"
-                  className="w-full p-3 border border-slate-200 rounded-lg outline-none focus:ring-2 focus:ring-[#8B5E3C]/20 focus:border-[#8B5E3C] transition-all"
-                  required
-                  autoComplete="username"
-                  disabled={loading}
-                />
-              </div>
+              <h1 className="text-2xl font-bold text-center text-slate-800 mb-2">
+                Student Portal
+              </h1>
+              <p className="text-center text-slate-500 text-sm mb-6">
+                Enter your Card ID and password to view results
+              </p>
 
-              {/* Password */}
-              <div>
-                <label htmlFor="password" className="block text-sm font-medium text-slate-600 mb-1">
-                  Password
-                </label>
-                <div className="relative">
+              <form onSubmit={handleLogin} className="space-y-4" noValidate>
+                <div>
+                  <label htmlFor="card-id" className="block text-sm font-medium text-slate-600 mb-1">
+                    Card ID
+                  </label>
                   <input
-                    id="password"
-                    type={showPassword ? "text" : "password"}
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    placeholder="Enter your password"
-                    className="w-full p-3 pr-12 border border-slate-200 rounded-lg outline-none focus:ring-2 focus:ring-[#8B5E3C]/20 focus:border-[#8B5E3C] transition-all"
+                    id="card-id"
+                    type="text"
+                    value={studentId}
+                    onChange={(e) => setStudentId(e.target.value)}
+                    placeholder="e.g. BA-2025-0001"
+                    className="w-full p-3 border border-slate-200 rounded-lg outline-none focus:ring-2 focus:ring-[#8B5E3C]/20 focus:border-[#8B5E3C] transition-all"
                     required
-                    autoComplete="current-password"
+                    autoComplete="username"
                     disabled={loading}
                   />
-                  <button
-                    type="button"
-                    onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 p-1"
-                    aria-label={showPassword ? "Hide password" : "Show password"}
-                    tabIndex={-1}
-                  >
-                    {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
-                  </button>
                 </div>
-              </div>
 
-              <button
-                type="submit"
-                disabled={loading}
-                className="w-full py-3 bg-[#8B5E3C] text-white rounded-lg font-semibold hover:bg-[#6B3F2C] disabled:opacity-50 transition-all flex items-center justify-center gap-2"
-              >
-                {loading ? (
-                  <>
-                    <Loader2 size={18} className="animate-spin" />
-                    Signing in...
-                  </>
-                ) : (
-                  "Sign In"
-                )}
-              </button>
-            </form>
-
-            {/* Forgot Password Link */}
-            <p className="text-center mt-4">
-              <button
-                onClick={() => setShowForgot(true)}
-                className="text-sm text-[#8B5E3C] hover:underline font-medium transition-colors"
-              >
-                Forgot Password?
-              </button>
-            </p>
-
-            {/* Back to Home */}
-            <p className="text-center mt-2">
-              <Link 
-                href="/" 
-                className="text-xs text-slate-400 hover:text-slate-600 transition-colors"
-              >
-                ← Back to Home
-              </Link>
-            </p>
-          </>
-        ) : (
-          <>
-            <h1 className="text-2xl font-bold text-center text-slate-800 mb-2">
-              Forgot Password
-            </h1>
-            <p className="text-center text-slate-500 text-sm mb-6">
-              Enter your Card ID and Last Name to reset your password
-            </p>
-
-            {resetResult ? (
-              <div className="bg-green-50 border border-green-200 rounded-xl p-6 text-center">
-                <p className="text-green-700 font-semibold text-lg mb-3">
-                  ✅ Password Reset Successful!
-                </p>
-                <p className="text-sm text-slate-600 mb-4">
-                  Student: <strong>{resetResult.studentName}</strong>
-                </p>
-                
-                <div className="bg-white rounded-lg p-4 mb-3 border border-green-100">
-                  <p className="text-xs text-slate-500 mb-2">
-                    Your temporary password is:
-                  </p>
-                  <div className="flex items-center justify-center gap-2">
-                    <code className="text-xl font-bold text-[#3D1902] font-mono tracking-wider select-all">
-                      {resetResult.password}
-                    </code>
+                <div>
+                  <label htmlFor="password" className="block text-sm font-medium text-slate-600 mb-1">
+                    Password
+                  </label>
+                  <div className="relative">
+                    <input
+                      id="password"
+                      type={showPassword ? "text" : "password"}
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      placeholder="Enter your password"
+                      className="w-full p-3 pr-12 border border-slate-200 rounded-lg outline-none focus:ring-2 focus:ring-[#8B5E3C]/20 focus:border-[#8B5E3C] transition-all"
+                      required
+                      autoComplete="current-password"
+                      disabled={loading}
+                    />
                     <button
-                      onClick={handleCopyPassword}
-                      className="p-2 hover:bg-green-50 rounded-lg transition-colors flex-shrink-0"
-                      aria-label="Copy password"
+                      type="button"
+                      onClick={() => setShowPassword(!showPassword)}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 p-1"
+                      aria-label={showPassword ? "Hide password" : "Show password"}
+                      tabIndex={-1}
                     >
-                      {passwordCopied ? (
-                        <Check size={18} className="text-green-600" />
-                      ) : (
-                        <Copy size={18} className="text-slate-400" />
-                      )}
+                      {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
                     </button>
                   </div>
                 </div>
 
-                <p className="text-xs text-red-500 font-medium mb-4">
-                  ⚠️ Change this password immediately after logging in for security!
-                </p>
-
-                <button
-                  onClick={handleBackToLogin}
-                  className="w-full py-3 bg-[#8B5E3C] text-white rounded-lg text-sm font-semibold hover:bg-[#6B3F2C] transition-all"
-                >
-                  Go to Login
-                </button>
-              </div>
-            ) : (
-              <form onSubmit={handleForgotPassword} className="space-y-4" noValidate>
-                <div>
-                  <label htmlFor="forgot-studentId" className="block text-sm font-medium text-slate-600 mb-1">
-                    Card ID
-                  </label>
-                  <input
-                    id="forgot-studentId"
-                    type="text"
-                    value={forgotStudentId}
-                    onChange={(e) => setForgotStudentId(e.target.value)}
-                    placeholder="e.g. BA-2025-0001"
-                    className="w-full p-3 border border-slate-200 rounded-lg outline-none focus:ring-2 focus:ring-[#8B5E3C]/20 focus:border-[#8B5E3C] transition-all"
-                    required
-                    disabled={forgotLoading}
-                  />
-                </div>
-
-                <div>
-                  <label htmlFor="forgot-lastName" className="block text-sm font-medium text-slate-600 mb-1">
-                    Last Name
-                  </label>
-                  <input
-                    id="forgot-lastName"
-                    type="text"
-                    value={forgotLastName}
-                    onChange={(e) => setForgotLastName(e.target.value)}
-                    placeholder="Enter your last name"
-                    className="w-full p-3 border border-slate-200 rounded-lg outline-none focus:ring-2 focus:ring-[#8B5E3C]/20 focus:border-[#8B5E3C] transition-all"
-                    required
-                    disabled={forgotLoading}
-                  />
-                </div>
-
                 <button
                   type="submit"
-                  disabled={forgotLoading}
+                  disabled={loading}
                   className="w-full py-3 bg-[#8B5E3C] text-white rounded-lg font-semibold hover:bg-[#6B3F2C] disabled:opacity-50 transition-all flex items-center justify-center gap-2"
                 >
-                  {forgotLoading ? (
+                  {loading ? (
                     <>
                       <Loader2 size={18} className="animate-spin" />
-                      Resetting...
+                      Signing in...
                     </>
                   ) : (
-                    "Reset Password"
+                    "Sign In"
                   )}
                 </button>
-
-                <button
-                  type="button"
-                  onClick={() => {
-                    setShowForgot(false);
-                    setResetResult(null);
-                  }}
-                  className="w-full py-2 text-slate-500 hover:text-slate-700 text-sm font-medium transition-colors"
-                >
-                  ← Back to Login
-                </button>
               </form>
-            )}
-          </>
-        )}
+
+              <p className="text-center mt-4">
+                <button
+                  onClick={() => setShowForgot(true)}
+                  className="text-sm text-[#8B5E3C] hover:underline font-medium transition-colors"
+                >
+                  Forgot Password?
+                </button>
+              </p>
+
+              <p className="text-center mt-2">
+                <Link
+                  href="/"
+                  className="text-xs text-slate-400 hover:text-slate-600 transition-colors"
+                >
+                  ← Back to Home
+                </Link>
+              </p>
+            </>
+          ) : (
+            <>
+              <h1 className="text-2xl font-bold text-center text-slate-800 mb-2">
+                Forgot Password
+              </h1>
+              <p className="text-center text-slate-500 text-sm mb-6">
+                Enter your Card ID and Last Name to reset your password
+              </p>
+
+              {resetResult ? (
+                <div className="bg-green-50 border border-green-200 rounded-xl p-6 text-center">
+                  <p className="text-green-700 font-semibold text-lg mb-3">
+                    ✅ Password Reset Successful!
+                  </p>
+                  <p className="text-sm text-slate-600 mb-4">
+                    Student: <strong>{resetResult.studentName}</strong>
+                  </p>
+                  <div className="bg-white rounded-lg p-4 mb-3 border border-green-100">
+                    <p className="text-xs text-slate-500 mb-2">
+                      Your temporary password is:
+                    </p>
+                    <div className="flex items-center justify-center gap-2">
+                      <code className="text-xl font-bold text-[#3D1902] font-mono tracking-wider select-all">
+                        {resetResult.password}
+                      </code>
+                      <button
+                        onClick={handleCopyPassword}
+                        className="p-2 hover:bg-green-50 rounded-lg transition-colors flex-shrink-0"
+                        aria-label="Copy password"
+                      >
+                        {passwordCopied ? (
+                          <Check size={18} className="text-green-600" />
+                        ) : (
+                          <Copy size={18} className="text-slate-400" />
+                        )}
+                      </button>
+                    </div>
+                  </div>
+                  <p className="text-xs text-red-500 font-medium mb-4">
+                    ⚠️ Change this password immediately after logging in for security!
+                  </p>
+                  <button
+                    onClick={handleBackToLogin}
+                    className="w-full py-3 bg-[#8B5E3C] text-white rounded-lg text-sm font-semibold hover:bg-[#6B3F2C] transition-all"
+                  >
+                    Go to Login
+                  </button>
+                </div>
+              ) : (
+                <form onSubmit={handleForgotPassword} className="space-y-4" noValidate>
+                  <div>
+                    <label htmlFor="forgot-studentId" className="block text-sm font-medium text-slate-600 mb-1">
+                      Card ID
+                    </label>
+                    <input
+                      id="forgot-studentId"
+                      type="text"
+                      value={forgotStudentId}
+                      onChange={(e) => setForgotStudentId(e.target.value)}
+                      placeholder="e.g. BA-2025-0001"
+                      className="w-full p-3 border border-slate-200 rounded-lg outline-none focus:ring-2 focus:ring-[#8B5E3C]/20 focus:border-[#8B5E3C] transition-all"
+                      required
+                      disabled={forgotLoading}
+                    />
+                  </div>
+                  <div>
+                    <label htmlFor="forgot-lastName" className="block text-sm font-medium text-slate-600 mb-1">
+                      Last Name
+                    </label>
+                    <input
+                      id="forgot-lastName"
+                      type="text"
+                      value={forgotLastName}
+                      onChange={(e) => setForgotLastName(e.target.value)}
+                      placeholder="Enter your last name"
+                      className="w-full p-3 border border-slate-200 rounded-lg outline-none focus:ring-2 focus:ring-[#8B5E3C]/20 focus:border-[#8B5E3C] transition-all"
+                      required
+                      disabled={forgotLoading}
+                    />
+                  </div>
+                  <button
+                    type="submit"
+                    disabled={forgotLoading}
+                    className="w-full py-3 bg-[#8B5E3C] text-white rounded-lg font-semibold hover:bg-[#6B3F2C] disabled:opacity-50 transition-all flex items-center justify-center gap-2"
+                  >
+                    {forgotLoading ? (
+                      <>
+                        <Loader2 size={18} className="animate-spin" />
+                        Resetting...
+                      </>
+                    ) : (
+                      "Reset Password"
+                    )}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setShowForgot(false);
+                      setResetResult(null);
+                    }}
+                    className="w-full py-2 text-slate-500 hover:text-slate-700 text-sm font-medium transition-colors"
+                  >
+                    ← Back to Login
+                  </button>
+                </form>
+              )}
+            </>
+          )}
+        </div>
       </div>
     </div>
   );

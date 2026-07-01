@@ -5,6 +5,7 @@
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
+import ServiceWorkerRegistration from "@/components/ServiceWorkerRegistration";
 
 const inter = Inter({
   subsets: ["latin"],
@@ -19,6 +20,7 @@ export const metadata: Metadata = {
   description:
     "Official student result management portal for The Benedictine Academy, Benin City. Check academic results, report cards, and exam scores online. Catholic Education Centre — Learning in Wisdom.",
   keywords: [
+    "The Benedictine Academy",
     "Benedictine Academy",
     "school results",
     "Benin City",
@@ -32,6 +34,12 @@ export const metadata: Metadata = {
   icons: {
     icon: "/favicon.ico",
     apple: "/logo.jpg",
+  },
+  manifest: "/manifest.json",   // ✅ ADD THIS
+  appleWebApp: {                 // ✅ ADD THIS
+    capable: true,
+    title: "Benedictine",
+    statusBarStyle: "default",
   },
   openGraph: {
     title: "The Benedictine Academy — Student Result Portal",
@@ -52,6 +60,7 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className={`${inter.className} min-h-screen bg-[#FAF7F2] text-[#3D1902] antialiased`}>
+        <ServiceWorkerRegistration />
         {children}
       </body>
     </html>

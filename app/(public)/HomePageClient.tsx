@@ -20,6 +20,8 @@ import type {
   HomeHighlight,
   HomeTestimonial,
 } from './_data/homepage';
+import InstallPrompt from "@/components/ui/InstallPrompt";
+import { Toaster } from 'react-hot-toast';
 
 // ---------- Animation variants (unchanged) ----------
 const fadeUp = {
@@ -56,13 +58,9 @@ export default function HomePageClient({
 
   return (
     <>
-      {/* Skip to content – accessibility */}
-      <a
-        href="#main-content"
-        className="sr-only focus:not-sr-only focus:absolute focus:top-4 focus:left-4 focus:z-50 focus:px-4 focus:py-2 focus:bg-white focus:text-black focus:rounded"
-      >
-        Skip to content
-      </a>
+      {/* Install prompt – floating bottom card, can appear anywhere in the component tree */}
+      <InstallPrompt />
+      <Toaster position="top-center" />
 
       <main className="flex-1 overflow-x-hidden" id="main-content">
         {/* ===== Announcement Bar ===== */}
