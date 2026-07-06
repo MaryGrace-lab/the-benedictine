@@ -1,12 +1,5 @@
 "use client";
 
-// ──────────────────────────────────────────────
-// Edit Results Form — Client Component
-// Handles all interactive form state, score editing,
-// behaviour, attendance, and submission logic.
-// Receives initial data as props from server.
-// ──────────────────────────────────────────────
-
 import React, { useState } from "react";
 import toast, { Toaster } from "react-hot-toast";
 import LogoutButton from "@/components/ui/LogoutButton";
@@ -22,21 +15,16 @@ type Student = {
 };
 
 type Session = { id: string; year: string; term: string };
-
 type Subject = { id: string; name: string };
-
 type ScoreEntry = {
   subjectId: string;
   firstTest: number | null;
   secondTest: number | null;
   exam: number | null;
 };
-
 type AttendanceData = Record<string, number | null | string | undefined>;
-
 type SummaryData = Record<string, string | number | null>;
 
-// ── Constants ──
 const RATING_OPTIONS = [
   { value: "", label: "Select" },
   { value: "EXCELLENT", label: "Excellent (5)" },
@@ -71,80 +59,96 @@ export default function EditResultsForm({ initialStudents, initialSessions }: Pr
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [isDirty, setIsDirty] = useState(false);
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const [noResultsMessage, setNoResultsMessage] = useState<string | null>(null);
+  const [deleting, setDeleting] = useState(false);
 
   const loadResults = async () => {
     if (!selectedStudent || !selectedSession) return;
     setLoading(true);
     setLoaded(false);
     setIsDirty(false);
+    setLoadError(null);
+    setNoResultsMessage(null);
 
     try {
       const res = await fetch(
-        `/api/results/get?studentId=${selectedStudent}&sessionId=${selectedSession}`
+        `/api/results/get?studentId=${encodeURIComponent(selectedStudent)}&sessionId=${encodeURIComponent(selectedSession)}`
       );
+
+      if (!res.ok) {
+        const errData = await res.json().catch(() => ({ error: "Unknown error" }));
+        throw new Error(errData.error || `Request failed (${res.status})`);
+      }
+
       const data = await res.json();
 
-      if (res.ok) {
-        setSubjects(data.subjects || []);
-
-        const scoreMap: Record<string, ScoreEntry> = {};
-        (data.results || []).forEach((r: ScoreEntry) => {
-          scoreMap[r.subjectId] = {
-            subjectId: r.subjectId,
-            firstTest: r.firstTest,
-            secondTest: r.secondTest,
-            exam: r.exam,
-          };
-        });
-
-        setScores(
-          (data.subjects || []).map(
-            (s: Subject): ScoreEntry =>
-              scoreMap[s.id] || {
-                subjectId: s.id,
-                firstTest: null,
-                secondTest: null,
-                exam: null,
-              }
-          )
-        );
-
-        const initialBehaviour: Record<string, string> = {};
-        BEHAVIOUR_TRAITS.forEach((trait) => {
-          initialBehaviour[trait] = data.socialBehaviour?.[trait] || "";
-        });
-        setBehaviour(initialBehaviour);
-
-        setAttendance({
-          schoolOpened: data.attendance?.schoolOpened ?? null,
-          schoolPresent: data.attendance?.schoolPresent ?? null,
-          sportOpened: data.attendance?.sportOpened ?? null,
-          sportPresent: data.attendance?.sportPresent ?? null,
-          othersOpened: data.attendance?.othersOpened ?? null,
-          othersPresent: data.attendance?.othersPresent ?? null,
-          organizedActivitiesOpened: data.attendance?.organizedActivitiesOpened ?? null,
-          organizedActivitiesPresent: data.attendance?.organizedActivitiesPresent ?? null,
-          remark: data.attendance?.remark || "",
-        });
-
-        setSummaryData({
-          noInClass: data.resultSummary?.noInClass ?? null,
-          evaluation: data.resultSummary?.evaluation || "",
-          classTeacherComment: data.resultSummary?.classTeacherComment || "",
-          nextTermFees: data.resultSummary?.nextTermFees || "",
-          outstandingFees: data.resultSummary?.outstandingFees || "",
-          books: data.resultSummary?.books || "",
-          nextTermBegins: data.resultSummary?.nextTermBegins || "",
-          headTeacherComment: data.resultSummary?.headTeacherComment || "",
-          parentName: data.resultSummary?.parentName || "",
-        });
-
-        setLoaded(true);
-      } else {
-        toast.error(data.error || "No results found");
+      if (!data.subjects || data.subjects.length === 0) {
+        throw new Error("No subjects found for this student’s class/level. Please add subjects in the database.");
       }
-    } catch {
-      toast.error("Failed to load results");
+
+      if (!data.resultSummary) {
+        const student = students.find(s => s.studentId === selectedStudent);
+        const session = sessions.find(s => s.id === selectedSession);
+        const studentName = student ? `${student.firstName} ${student.lastName}` : selectedStudent;
+        const sessionLabel = session ? `${session.year} – ${session.term} Term` : selectedSession;
+        setNoResultsMessage(`No results found for ${studentName} in ${sessionLabel}.`);
+        return;
+      }
+
+      setSubjects(data.subjects);
+
+      const scoreMap: Record<string, ScoreEntry> = {};
+      (data.results || []).forEach((r: any) => {
+        scoreMap[r.subjectId] = {
+          subjectId: r.subjectId,
+          firstTest: r.firstTest,
+          secondTest: r.secondTest,
+          exam: r.exam,
+        };
+      });
+
+      setScores(
+        data.subjects.map((s: Subject) =>
+          scoreMap[s.id] || { subjectId: s.id, firstTest: null, secondTest: null, exam: null }
+        )
+      );
+
+      const initBehaviour: Record<string, string> = {};
+      BEHAVIOUR_TRAITS.forEach((trait) => {
+        initBehaviour[trait] = data.socialBehaviour?.[trait] || "";
+      });
+      setBehaviour(initBehaviour);
+
+      setAttendance({
+        schoolOpened: data.attendance?.schoolOpened ?? null,
+        schoolPresent: data.attendance?.schoolPresent ?? null,
+        sportOpened: data.attendance?.sportOpened ?? null,
+        sportPresent: data.attendance?.sportPresent ?? null,
+        othersOpened: data.attendance?.othersOpened ?? null,
+        othersPresent: data.attendance?.othersPresent ?? null,
+        organizedActivitiesOpened: data.attendance?.organizedActivitiesOpened ?? null,
+        organizedActivitiesPresent: data.attendance?.organizedActivitiesPresent ?? null,
+        remark: data.attendance?.remark || "",
+      });
+
+      setSummaryData({
+        noInClass: data.resultSummary?.noInClass ?? null,
+        evaluation: data.resultSummary?.evaluation || "",
+        classTeacherComment: data.resultSummary?.classTeacherComment || "",
+        nextTermFees: data.resultSummary?.nextTermFees || "",
+        outstandingFees: data.resultSummary?.outstandingFees || "",
+        books: data.resultSummary?.books || "",
+        nextTermBegins: data.resultSummary?.nextTermBegins || "",
+        headTeacherComment: data.resultSummary?.headTeacherComment || "",
+        parentName: data.resultSummary?.parentName || "",
+      });
+
+      setLoaded(true);
+    } catch (error: any) {
+      const message = error?.message || "Failed to load results";
+      setLoadError(message);
+      toast.error(message);
     } finally {
       setLoading(false);
     }
@@ -172,16 +176,15 @@ export default function EditResultsForm({ initialStudents, initialSessions }: Pr
         sanitizedBehaviour[key] = val === "" ? null : val;
       });
 
-const sanitizedResults = scores.map((s) => ({
-  subjectId: s.subjectId,
-  firstTest: s.firstTest ?? null,
-  secondTest: s.secondTest ?? null,
-  exam: s.exam ?? null,
-}));
       const payload = {
         studentId: selectedStudent,
         sessionId: selectedSession,
-        results: sanitizedResults,
+        results: scores.map((s) => ({
+          subjectId: s.subjectId,
+          firstTest: s.firstTest ?? null,
+          secondTest: s.secondTest ?? null,
+          exam: s.exam ?? null,
+        })),
         socialBehaviour: sanitizedBehaviour,
         attendance: {
           schoolOpened: attendance.schoolOpened === "" ? null : attendance.schoolOpened,
@@ -190,10 +193,8 @@ const sanitizedResults = scores.map((s) => ({
           sportPresent: attendance.sportPresent === "" ? null : attendance.sportPresent,
           othersOpened: attendance.othersOpened === "" ? null : attendance.othersOpened,
           othersPresent: attendance.othersPresent === "" ? null : attendance.othersPresent,
-          organizedActivitiesOpened:
-            attendance.organizedActivitiesOpened === "" ? null : attendance.organizedActivitiesOpened,
-          organizedActivitiesPresent:
-            attendance.organizedActivitiesPresent === "" ? null : attendance.organizedActivitiesPresent,
+          organizedActivitiesOpened: attendance.organizedActivitiesOpened === "" ? null : attendance.organizedActivitiesOpened,
+          organizedActivitiesPresent: attendance.organizedActivitiesPresent === "" ? null : attendance.organizedActivitiesPresent,
           remark: (attendance.remark as string)?.trim() || null,
         },
         noInClass: summaryData.noInClass === "" ? null : summaryData.noInClass,
@@ -214,7 +215,6 @@ const sanitizedResults = scores.map((s) => ({
       });
 
       const data = await res.json();
-
       if (res.ok) {
         toast.success("Results updated successfully!", { duration: 5000 });
         setIsDirty(false);
@@ -228,6 +228,38 @@ const sanitizedResults = scores.map((s) => ({
     }
   };
 
+  const handleDelete = async () => {
+    if (!window.confirm(
+      `PERMANENTLY DELETE all results for ${studentName} in ${sessionLabel}?\n\nThis action cannot be undone.`
+    )) return;
+
+    setDeleting(true);
+    try {
+      const res = await fetch("/api/results/delete", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ studentId: selectedStudent, sessionId: selectedSession }),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        toast.success(data.message);
+        setLoaded(false);
+        setNoResultsMessage(data.message);
+      } else {
+        toast.error(data.error || "Delete failed");
+      }
+    } catch {
+      toast.error("Network error");
+    } finally {
+      setDeleting(false);
+    }
+  };
+
+  const student = students.find(s => s.studentId === selectedStudent);
+  const session = sessions.find(s => s.id === selectedSession);
+  const studentName = student ? `${student.firstName} ${student.lastName}` : selectedStudent;
+  const sessionLabel = session ? `${session.year} – ${session.term} Term` : selectedSession;
+
   return (
     <div className="min-h-screen bg-[#FAF7F2] p-4 md:p-6">
       <Toaster position="top-center" />
@@ -240,11 +272,12 @@ const sanitizedResults = scores.map((s) => ({
           <LogoutButton type="admin" />
         </div>
 
+        {/* Selection controls */}
         <div className="bg-white p-6 rounded-2xl border border-[#8B5E3C]/10 shadow-sm mb-6">
           <div className="grid md:grid-cols-3 gap-4">
             <div>
               <label htmlFor="edit-student-select" className="block text-xs font-medium text-[#8B5E3C] mb-1">Student *</label>
-              <select id="edit-student-select" aria-label="Select Student" value={selectedStudent} onChange={(e) => { setSelectedStudent(e.target.value); setLoaded(false); setIsDirty(false); }} className="w-full p-2.5 border rounded-lg text-sm">
+              <select id="edit-student-select" aria-label="Select Student" value={selectedStudent} onChange={(e) => { setSelectedStudent(e.target.value); setLoaded(false); setIsDirty(false); setLoadError(null); setNoResultsMessage(null); }} className="w-full p-2.5 border rounded-lg text-sm">
                 <option value="">Select Student</option>
                 {students.map((s) => (
                   <option key={s.studentId} value={s.studentId}>{s.lastName} {s.firstName} — {s.class}</option>
@@ -253,9 +286,9 @@ const sanitizedResults = scores.map((s) => ({
             </div>
             <div>
               <label htmlFor="edit-session-select" className="block text-xs font-medium text-[#8B5E3C] mb-1">Session *</label>
-              <select id="edit-session-select" aria-label="Select Session" value={selectedSession} onChange={(e) => { setSelectedSession(e.target.value); setLoaded(false); setIsDirty(false); }} className="w-full p-2.5 border rounded-lg text-sm">
+              <select id="edit-session-select" aria-label="Select Session" value={selectedSession} onChange={(e) => { setSelectedSession(e.target.value); setLoaded(false); setIsDirty(false); setLoadError(null); setNoResultsMessage(null); }} className="w-full p-2.5 border rounded-lg text-sm">
                 <option value="">Select Session</option>
-                {sessions.map((s) => (<option key={s.id} value={s.id}>{s.year} — {s.term}</option>))}
+                {sessions.map((s) => (<option key={s.id} value={s.id}>{s.year} — {s.term} Term</option>))}
               </select>
             </div>
             <div className="flex items-end">
@@ -264,24 +297,54 @@ const sanitizedResults = scores.map((s) => ({
               </button>
             </div>
           </div>
+
+          {loadError && (
+            <div className="mt-4 p-3 rounded-lg bg-red-50 border border-red-200 text-sm text-red-700 flex items-center justify-between">
+              <span>{loadError}</span>
+              <button onClick={loadResults} className="ml-4 underline text-red-700 hover:text-red-900">Retry</button>
+            </div>
+          )}
+
+          {noResultsMessage && (
+            <div className="mt-4 p-4 rounded-lg bg-amber-50 border border-amber-200 text-sm text-amber-800 text-center">
+              <p>{noResultsMessage}</p>
+              <p className="mt-2 text-xs text-amber-600">Select a different student or session, or upload results first.</p>
+            </div>
+          )}
         </div>
 
         {loaded && (
           <>
             <div className="bg-white rounded-2xl border border-[#8B5E3C]/10 shadow-sm overflow-hidden mb-6">
-              <div className="p-6 border-b"><h2 className="text-lg font-semibold text-[#3D1902]">Subject Scores</h2></div>
+              <div className="p-6 border-b">
+                <h2 className="text-lg font-semibold text-[#3D1902]">Subject Scores</h2>
+                <p className="text-xs text-[#8B5E3C]/60">{studentName} – {sessionLabel}</p>
+              </div>
               <div className="overflow-x-auto">
                 <table className="w-full text-sm" aria-label="Edit Subject Scores">
-                  <thead><tr className="bg-[#FAF7F2] text-xs font-semibold text-[#8B5E3C] border-b"><th className="p-3 text-left">Subject</th><th className="p-3 text-center">1st Test (20)</th><th className="p-3 text-center">2nd Test (20)</th><th className="p-3 text-center">Exam (60)</th></tr></thead>
+                  <thead>
+                    <tr className="bg-[#FAF7F2] text-xs font-semibold text-[#8B5E3C] border-b">
+                      <th className="p-3 text-left">Subject</th>
+                      <th className="p-3 text-center">1st Test (20)</th>
+                      <th className="p-3 text-center">2nd Test (20)</th>
+                      <th className="p-3 text-center">Exam (60)</th>
+                    </tr>
+                  </thead>
                   <tbody className="divide-y">
                     {subjects.map((subject) => {
                       const score = scores.find((s) => s.subjectId === subject.id);
                       return (
                         <tr key={subject.id} className="hover:bg-[#FAF7F2]/50">
                           <td className="p-3 font-medium text-[#3D1902]">{subject.name}</td>
-                          <td className="p-3 text-center"><input type="number" min="0" max="20" aria-label={`${subject.name} First Test`} value={score?.firstTest ?? ""} onChange={(e) => updateScore(subject.id, "firstTest", e.target.value)} className="w-16 p-1.5 border rounded text-center" /></td>
-                          <td className="p-3 text-center"><input type="number" min="0" max="20" aria-label={`${subject.name} Second Test`} value={score?.secondTest ?? ""} onChange={(e) => updateScore(subject.id, "secondTest", e.target.value)} className="w-16 p-1.5 border rounded text-center" /></td>
-                          <td className="p-3 text-center"><input type="number" min="0" max="60" aria-label={`${subject.name} Exam`} value={score?.exam ?? ""} onChange={(e) => updateScore(subject.id, "exam", e.target.value)} className="w-16 p-1.5 border rounded text-center" /></td>
+                          <td className="p-3 text-center">
+                            <input type="number" min="0" max="20" aria-label={`${subject.name} First Test`} value={score?.firstTest ?? ""} onChange={(e) => updateScore(subject.id, "firstTest", e.target.value)} className="w-16 p-1.5 border rounded text-center" />
+                          </td>
+                          <td className="p-3 text-center">
+                            <input type="number" min="0" max="20" aria-label={`${subject.name} Second Test`} value={score?.secondTest ?? ""} onChange={(e) => updateScore(subject.id, "secondTest", e.target.value)} className="w-16 p-1.5 border rounded text-center" />
+                          </td>
+                          <td className="p-3 text-center">
+                            <input type="number" min="0" max="60" aria-label={`${subject.name} Exam`} value={score?.exam ?? ""} onChange={(e) => updateScore(subject.id, "exam", e.target.value)} className="w-16 p-1.5 border rounded text-center" />
+                          </td>
                         </tr>
                       );
                     })}
@@ -346,9 +409,15 @@ const sanitizedResults = scores.map((s) => ({
               </div>
             </div>
 
-            <button onClick={handleSave} disabled={saving} className="w-full py-3.5 bg-[#8B5E3C] text-white rounded-xl font-semibold hover:bg-[#6B3F2C] disabled:opacity-50 transition-all">
-              {saving ? "Saving Changes..." : "Save Changes"}
-            </button>
+            {/* Save and Delete buttons */}
+            <div className="flex gap-4">
+              <button onClick={handleSave} disabled={saving} className="flex-1 py-3.5 bg-[#8B5E3C] text-white rounded-xl font-semibold hover:bg-[#6B3F2C] disabled:opacity-50 transition-all">
+                {saving ? "Saving Changes..." : "Save Changes"}
+              </button>
+              <button onClick={handleDelete} disabled={deleting} className="flex-1 py-3.5 bg-red-600 text-white rounded-xl font-semibold hover:bg-red-700 disabled:opacity-50 transition-all">
+                {deleting ? "Deleting..." : "Delete Results"}
+              </button>
+            </div>
           </>
         )}
       </div>

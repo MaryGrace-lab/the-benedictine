@@ -106,37 +106,39 @@ export default async function StudentResultsPage({
     }
   }
 
-  const [results, socialBehaviour, attendance, resultSummary] = await Promise.all([
-    prisma.result.findMany({
-      where: { studentId: studentProfile.id, sessionId: activeSession.id },
-      include: { subject: { select: { name: true } } },
-      orderBy: { subject: { name: "asc" } },
-    }),
-    prisma.socialBehaviour.findUnique({
-      where: {
-        studentId_sessionId: {
-          studentId: studentProfile.id,
-          sessionId: activeSession.id,
-        },
+  // Fetch results sequentially to prevent connection pool exhaustion
+  const results = await prisma.result.findMany({
+    where: { studentId: studentProfile.id, sessionId: activeSession.id },
+    include: { subject: { select: { name: true } } },
+    orderBy: { subject: { name: "asc" } },
+  });
+
+  const socialBehaviour = await prisma.socialBehaviour.findUnique({
+    where: {
+      studentId_sessionId: {
+        studentId: studentProfile.id,
+        sessionId: activeSession.id,
       },
-    }),
-    prisma.attendance.findUnique({
-      where: {
-        studentId_sessionId: {
-          studentId: studentProfile.id,
-          sessionId: activeSession.id,
-        },
+    },
+  });
+
+  const attendance = await prisma.attendance.findUnique({
+    where: {
+      studentId_sessionId: {
+        studentId: studentProfile.id,
+        sessionId: activeSession.id,
       },
-    }),
-    prisma.resultSummary.findUnique({
-      where: {
-        studentId_sessionId: {
-          studentId: studentProfile.id,
-          sessionId: activeSession.id,
-        },
+    },
+  });
+
+  const resultSummary = await prisma.resultSummary.findUnique({
+    where: {
+      studentId_sessionId: {
+        studentId: studentProfile.id,
+        sessionId: activeSession.id,
       },
-    }),
-  ]);
+    },
+  });
 
   if (!resultSummary) {
     return (

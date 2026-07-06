@@ -57,26 +57,29 @@ export async function GET(req: Request) {
       subjectWhere.OR = [{ stream }, { stream: "ALL" }];
     }
 
-    const [results, socialBehaviour, attendance, resultSummary, subjects] = await Promise.all([
-      prisma.result.findMany({
-        where: { studentId: student.id, sessionId },
-        include: { subject: true },
-        orderBy: { subject: { name: "asc" } },
-      }),
-      prisma.socialBehaviour.findUnique({
-        where: { studentId_sessionId: { studentId: student.id, sessionId } },
-      }),
-      prisma.attendance.findUnique({
-        where: { studentId_sessionId: { studentId: student.id, sessionId } },
-      }),
-      prisma.resultSummary.findUnique({
-        where: { studentId_sessionId: { studentId: student.id, sessionId } },
-      }),
-      prisma.subject.findMany({
-        where: subjectWhere,
-        orderBy: { name: "asc" },
-      }),
-    ]);
+    // Fetch sequentially to avoid connection pool exhaustion
+    const results = await prisma.result.findMany({
+      where: { studentId: student.id, sessionId },
+      include: { subject: true },
+      orderBy: { subject: { name: "asc" } },
+    });
+
+    const socialBehaviour = await prisma.socialBehaviour.findUnique({
+      where: { studentId_sessionId: { studentId: student.id, sessionId } },
+    });
+
+    const attendance = await prisma.attendance.findUnique({
+      where: { studentId_sessionId: { studentId: student.id, sessionId } },
+    });
+
+    const resultSummary = await prisma.resultSummary.findUnique({
+      where: { studentId_sessionId: { studentId: student.id, sessionId } },
+    });
+
+    const subjects = await prisma.subject.findMany({
+      where: subjectWhere,
+      orderBy: { name: "asc" },
+    });
 
     return NextResponse.json({
       student: {

@@ -20,30 +20,31 @@ export default async function TeacherDashboardPage() {
     redirect("/teacher-portal/login");
   }
 
-  // Fetch teacher profile + stats in parallel
-  const [teacher, studentCount, resultCount, recentStudents] = await Promise.all([
-    prisma.user.findUnique({
-      where: { id: session.userId },
-      select: { name: true, assignedClass: true },
-    }),
-    prisma.student.count({
-      where: { class: session.assignedClass || "" },
-    }),
-    prisma.result.count({
-      where: { student: { class: session.assignedClass || "" } },
-    }),
-    prisma.student.findMany({
-      where: { class: session.assignedClass || "" },
-      orderBy: { createdAt: "desc" },
-      take: 5,
-      select: {
-        firstName: true,
-        lastName: true,
-        studentId: true,
-        createdAt: true,
-      },
-    }),
-  ]);
+  // Fetch sequentially to prevent connection pool exhaustion
+  const teacher = await prisma.user.findUnique({
+    where: { id: session.userId },
+    select: { name: true, assignedClass: true },
+  });
+
+  const studentCount = await prisma.student.count({
+    where: { class: session.assignedClass || "" },
+  });
+
+  const resultCount = await prisma.result.count({
+    where: { student: { class: session.assignedClass || "" } },
+  });
+
+  const recentStudents = await prisma.student.findMany({
+    where: { class: session.assignedClass || "" },
+    orderBy: { createdAt: "desc" },
+    take: 5,
+    select: {
+      firstName: true,
+      lastName: true,
+      studentId: true,
+      createdAt: true,
+    },
+  });
 
   return (
     <div className="space-y-6">

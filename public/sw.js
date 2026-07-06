@@ -6,6 +6,8 @@ const ASSETS_TO_CACHE = [
   '/about',
   '/academics',
   '/admission',
+  '/admission/apply',
+  '/e-learning',
   '/contact',
   '/FAQ',
   '/news',
@@ -20,8 +22,9 @@ const ASSETS_TO_CACHE = [
 self.addEventListener('install', (event) => {
   event.waitUntil(
     caches.open(CACHE_NAME).then((cache) => {
-      console.log('Service Worker: Caching app shell');
-      return cache.addAll(ASSETS_TO_CACHE);
+      return Promise.allSettled(
+        ASSETS_TO_CACHE.map(url => cache.add(url))
+      );
     }).catch((error) => {
       console.error('Service Worker: Cache failed', error);
     })
@@ -52,7 +55,7 @@ self.addEventListener('fetch', (event) => {
     caches.match(event.request).then((cachedResponse) => {
       if (cachedResponse) {
         // Return cached response immediately, update cache in background
-        const fetchPromise = fetch(event.request).then((networkResponse) => {
+        fetch(event.request).then((networkResponse) => {
           caches.open(CACHE_NAME).then((cache) => {
             cache.put(event.request, networkResponse.clone());
           });

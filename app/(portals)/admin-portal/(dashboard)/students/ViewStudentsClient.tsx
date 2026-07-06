@@ -2,7 +2,7 @@
 
 // ──────────────────────────────────────────────
 // View Students Client — Client Component
-// Handles filters, search, modals, and UI.
+// Handles filters, search, modals, promotion, and UI.
 // All filtering done client-side (data already loaded).
 // ──────────────────────────────────────────────
 
@@ -14,7 +14,7 @@ import toast from "react-hot-toast";
 import DeleteConfirmModal from "@/components/ui/DeleteConfirmModal";
 import EditStudentModal from "@/components/ui/EditStudentModal";
 import PasswordRevealModal from "@/components/ui/PasswordRevealModal";
-import { Search, Filter, UserPlus, ArrowLeft } from "lucide-react";
+import { Search, Filter, UserPlus, ArrowLeft, TrendingUp } from "lucide-react";
 
 // ── Types ──
 type Student = {
@@ -42,18 +42,21 @@ export default function ViewStudentsClient({ initialStudents }: Props) {
   const [passwordTarget, setPasswordTarget] = useState<{ studentId: string; name: string } | null>(null);
   const [students, setStudents] = useState<Student[]>(initialStudents);
 
+  // ── Promotion state ──
+  const [selectedStudents, setSelectedStudents] = useState<string[]>([]);
+  const [showPromoteModal, setShowPromoteModal] = useState(false);
+  const [targetClass, setTargetClass] = useState("");
+  const [promoting, setPromoting] = useState(false);
+
   // Extract unique classes
   const classes = useMemo(() => {
     return [...new Set(initialStudents.map((s) => s.class))].sort();
   }, [initialStudents]);
 
-  // Filter students client-side (no API calls needed)
+  // Filter students client-side
   const filteredStudents = useMemo(() => {
     return initialStudents.filter((s) => {
-      // Class filter
       if (selectedClass && s.class !== selectedClass) return false;
-      
-      // Search filter
       if (search) {
         const query = search.toLowerCase();
         return (
@@ -62,14 +65,29 @@ export default function ViewStudentsClient({ initialStudents }: Props) {
           s.studentId.toLowerCase().includes(query)
         );
       }
-      
       return true;
     });
   }, [initialStudents, selectedClass, search]);
 
+  // Selection logic
+  const toggleStudentSelection = (studentId: string) => {
+    setSelectedStudents((prev) =>
+      prev.includes(studentId)
+        ? prev.filter((id) => id !== studentId)
+        : [...prev, studentId]
+    );
+  };
+
+  const toggleAll = () => {
+    if (selectedStudents.length === filteredStudents.length && filteredStudents.length > 0) {
+      setSelectedStudents([]);
+    } else {
+      setSelectedStudents(filteredStudents.map((s) => s.studentId));
+    }
+  };
+
   const handleDeleted = () => {
     toast.success("Student deleted successfully");
-    // Remove from local state
     if (deleteTarget) {
       setStudents((prev) => prev.filter((s) => s.id !== deleteTarget.id));
     }
@@ -77,15 +95,44 @@ export default function ViewStudentsClient({ initialStudents }: Props) {
 
   const handleUpdated = () => {
     toast.success("Student updated successfully");
-    // Refresh would require re-fetch, or you can update local state
     router.refresh();
+  };
+
+  const handlePromote = async () => {
+    if (!targetClass) return;
+    setPromoting(true);
+    try {
+      const res = await fetch("/api/students/promote", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ studentIds: selectedStudents, targetClass }),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        toast.success(data.message);
+        setShowPromoteModal(false);
+        setSelectedStudents([]);
+        // Update local class of promoted students
+        setStudents((prev) =>
+          prev.map((s) =>
+            selectedStudents.includes(s.studentId) ? { ...s, class: targetClass } : s
+          )
+        );
+      } else {
+        toast.error(data.error || "Promotion failed");
+      }
+    } catch {
+      toast.error("Network error");
+    } finally {
+      setPromoting(false);
+    }
   };
 
   return (
     <div className="min-h-screen bg-slate-50 p-4 md:p-8">
       <Toaster position="top-center" />
 
-      {/* Modals */}
+      {/* Existing modals */}
       {deleteTarget && (
         <DeleteConfirmModal
           isOpen={!!deleteTarget}
@@ -111,6 +158,54 @@ export default function ViewStudentsClient({ initialStudents }: Props) {
           studentName={passwordTarget.name}
           onClose={() => setPasswordTarget(null)}
         />
+      )}
+
+      {/* Promotion Modal */}
+      {showPromoteModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50">
+          <div className="bg-white rounded-2xl p-6 max-w-md w-full shadow-xl">
+            <h3 className="text-xl font-bold text-[#3D1902] mb-4">
+              Promote {selectedStudents.length} Student(s)
+            </h3>
+            <p className="text-sm text-slate-500 mb-4">
+              Selected students will be moved to the new class. All results, attendance, and behaviour records will be preserved.
+            </p>
+            <div className="mb-4">
+              <label htmlFor="targetClass" className="block text-sm font-medium text-slate-600 mb-1">
+                Target Class *
+              </label>
+              <select
+                id="targetClass"
+                value={targetClass}
+                onChange={(e) => setTargetClass(e.target.value)}
+                className="w-full p-2.5 border rounded-lg text-sm"
+              >
+                <option value="">Select class</option>
+                <option value="JSS 1">JSS 1</option>
+                <option value="JSS 2">JSS 2</option>
+                <option value="JSS 3">JSS 3</option>
+                <option value="SSS 1">SSS 1</option>
+                <option value="SSS 2">SSS 2</option>
+                <option value="SSS 3">SSS 3</option>
+              </select>
+            </div>
+            <div className="flex gap-3">
+              <button
+                onClick={() => setShowPromoteModal(false)}
+                className="flex-1 py-2.5 bg-slate-100 rounded-lg font-medium hover:bg-slate-200"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handlePromote}
+                disabled={!targetClass || promoting}
+                className="flex-1 py-2.5 bg-[#8B5E3C] text-white rounded-lg font-semibold hover:bg-[#6B3F2C] disabled:opacity-50"
+              >
+                {promoting ? "Promoting..." : "Promote"}
+              </button>
+            </div>
+          </div>
+        </div>
       )}
 
       <div className="max-w-6xl mx-auto">
@@ -166,6 +261,22 @@ export default function ViewStudentsClient({ initialStudents }: Props) {
           </div>
         </div>
 
+        {/* Promote bar (visible when students selected) */}
+        {selectedStudents.length > 0 && (
+          <div className="flex items-center justify-between bg-[#8B5E3C]/5 border border-[#8B5E3C]/20 p-3 rounded-xl mb-4">
+            <span className="text-sm text-[#8B5E3C] font-medium">
+              {selectedStudents.length} student(s) selected
+            </span>
+            <button
+              onClick={() => setShowPromoteModal(true)}
+              className="inline-flex items-center gap-2 px-4 py-2 bg-[#8B5E3C] text-white rounded-lg text-sm font-semibold hover:bg-[#6B3F2C] transition-all"
+            >
+              <TrendingUp size={16} />
+              Promote Selected Students
+            </button>
+          </div>
+        )}
+
         {/* Students Table */}
         {filteredStudents.length === 0 ? (
           <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-10 text-center">
@@ -190,6 +301,19 @@ export default function ViewStudentsClient({ initialStudents }: Props) {
               <table className="w-full text-sm min-w-[700px]">
                 <thead>
                   <tr className="bg-slate-50 text-xs font-semibold text-slate-500 border-b border-slate-200">
+                    <th className="p-3 text-center">
+                      <input
+                        type="checkbox"
+                        checked={
+                          selectedStudents.length === filteredStudents.length &&
+                          filteredStudents.length > 0
+                        }
+                        onChange={toggleAll}
+                        className="w-4 h-4 accent-[#8B5E3C]"
+                        aria-label="Select all students"
+                        title="Select all students"
+                      />
+                    </th>
                     <th className="p-3 text-left">Card ID</th>
                     <th className="p-3 text-left">Name</th>
                     <th className="p-3 text-left">Class</th>
@@ -203,6 +327,16 @@ export default function ViewStudentsClient({ initialStudents }: Props) {
                 <tbody className="divide-y divide-slate-100">
                   {filteredStudents.map((student) => (
                     <tr key={student.id} className="hover:bg-slate-50/50 transition-colors">
+                      <td className="p-3 text-center">
+                        <input
+                          type="checkbox"
+                          checked={selectedStudents.includes(student.studentId)}
+                          onChange={() => toggleStudentSelection(student.studentId)}
+                          className="w-4 h-4 accent-[#8B5E3C]"
+                          aria-label={`Select ${student.firstName} ${student.lastName}`}
+                          title={`Select ${student.firstName} ${student.lastName}`}
+                        />
+                      </td>
                       <td className="p-3 font-mono text-xs font-medium text-slate-700">
                         {student.studentId}
                       </td>

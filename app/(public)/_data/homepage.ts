@@ -15,7 +15,7 @@ export const homeStats: HomeStat[] = [
 // ---------- Announcements ----------
 export interface HomeAnnouncement {
   id: number;
-  category: 'academic' | 'event' | 'general';
+  category: 'academic' | 'event' | 'general' | 'notice';
   date: string;          // YYYY-MM-DD
   title: string;
   content: string;
@@ -26,8 +26,16 @@ export const homeAnnouncements: HomeAnnouncement[] = [
     id: 1,
     category: 'academic',
     date: '2026-07-10', // YYYY-MM-DD
-    title: 'School Resumption',
+    title: 'School Vacation Notice',
     content: 'School will vacate on 10th of July 2026.',
+  },
+
+  {
+    id: 2,
+    category: 'notice',
+    date: '2026-07-10', // YYYY-MM-DD
+    title: 'Admission Open',
+    content: 'Applications for the new academic year are now open. Both online and physical applications are accepted.',
   },
 
 ];
@@ -75,18 +83,8 @@ export interface HomeTestimonial {
 
 export const homeTestimonials: HomeTestimonial[] = [
   {
-    name: 'Mrs. Umoize Mary',
-    role: 'Parent',
-    content: 'Taking my children to The Benedictine Academy was the best decision I ever made.',
-  },
-  {
-    name: 'Mr. Okonkwo Joseph',
-    role: 'Alumnus',
-    content: 'The Benedictine Academy gave me the foundation I needed in my academic journey.',
-  },
-  {
-    name: 'Dr. Eze Charlse',
-    role: 'Parent',
-    content: 'A beacon of academic and moral excellence.',
+    name: 'Miss Umoize Mary',
+    role: 'Teacher',
+    content: 'Teaching at the Benedictine Academy has been a rewarding experience, witnessing students grow academically, spiritually and morally.',
   },
 ];

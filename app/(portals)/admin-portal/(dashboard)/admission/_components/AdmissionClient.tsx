@@ -3,7 +3,8 @@
 import { useState, useEffect, useCallback } from "react";
 import { motion } from "framer-motion";
 import { AdmissionStats, AdmissionFilters, AdmissionsTable, AdmissionDetailModal } from "./index";
-import { Loader2 } from "lucide-react";
+import { Loader2, Trash2 } from "lucide-react";
+import toast from "react-hot-toast";
 
 export function AdmissionClient() {
   const [applications, setApplications] = useState<any[]>([]);
@@ -14,6 +15,49 @@ export function AdmissionClient() {
   const [page, setPage] = useState(1);
   const [pagination, setPagination] = useState({ total: 0, totalPages: 1 });
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
+
+  const handleSingleDelete = async (id: string) => {
+    try {
+      const res = await fetch("/api/admission/delete", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ids: [id] }),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        toast.success(data.message);
+        fetchApplications();
+      } else {
+        toast.error(data.error || "Delete failed");
+      }
+    } catch {
+      toast.error("Network error");
+    }
+  };
+
+  const handleBulkDelete = async () => {
+    if (selectedIds.length === 0) return;
+    if (!window.confirm(`Delete ${selectedIds.length} selected application(s)?`)) return;
+
+    try {
+      const res = await fetch("/api/admission/delete", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ids: selectedIds }),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        toast.success(data.message);
+        setSelectedIds([]);
+        fetchApplications();
+      } else {
+        toast.error(data.error || "Delete failed");
+      }
+    } catch {
+      toast.error("Network error");
+    }
+  };
 
   const fetchApplications = useCallback(async () => {
     setLoading(true);
@@ -91,6 +135,22 @@ export function AdmissionClient() {
         />
       </div>
 
+      {/* Bulk Delete Bar */}
+      {selectedIds.length > 0 && (
+        <div className="mt-4 flex items-center justify-between bg-red-50 border border-red-200 p-3 rounded-xl">
+          <span className="text-sm text-red-700 font-medium">
+            {selectedIds.length} application(s) selected
+          </span>
+          <button
+            onClick={handleBulkDelete}
+            className="inline-flex items-center gap-2 px-4 py-2 bg-red-600 text-white rounded-lg text-sm font-semibold hover:bg-red-700 transition-all"
+          >
+            <Trash2 size={16} />
+            Delete Selected
+          </button>
+        </div>
+      )}
+
       {/* Table */}
       <div className="mt-4">
         {loading ? (
@@ -98,7 +158,13 @@ export function AdmissionClient() {
             <Loader2 className="h-8 w-8 animate-spin text-[#8B5E3C]" />
           </div>
         ) : (
-          <AdmissionsTable applications={applications} onView={setSelectedId} />
+          <AdmissionsTable
+            applications={applications}
+            selectedIds={selectedIds}
+            onSelectionChange={setSelectedIds}
+            onView={setSelectedId}
+            onDelete={handleSingleDelete}
+          />
         )}
       </div>
 

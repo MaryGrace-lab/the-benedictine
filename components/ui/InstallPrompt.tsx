@@ -18,19 +18,19 @@ function getOS(): "android" | "ios" | "other" {
 
 export default function InstallPrompt() {
   const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null);
-  const [isInstalled, setIsInstalled] = useState(false);
   const [visible, setVisible] = useState(false);
   const [os, setOs] = useState<"android" | "ios" | "other">("other");
 
   useEffect(() => {
     setOs(getOS());
 
-    // Already installed?
-    if (window.matchMedia("(display-mode: standalone)").matches) {
-      setIsInstalled(true);
-      return;
+    // On iOS, always show the guidance card after a short delay (no beforeinstallprompt)
+    if (getOS() === "ios") {
+      const timer = setTimeout(() => setVisible(true), 2000);
+      return () => clearTimeout(timer);
     }
 
+    // On Android, wait for the beforeinstallprompt event
     const handler = (e: Event) => {
       e.preventDefault();
       setDeferredPrompt(e as BeforeInstallPromptEvent);
@@ -38,27 +38,20 @@ export default function InstallPrompt() {
     };
 
     window.addEventListener("beforeinstallprompt", handler);
-    window.addEventListener("appinstalled", () => {
-      setIsInstalled(true);
-      setVisible(false);
-    });
-
     return () => window.removeEventListener("beforeinstallprompt", handler);
   }, []);
 
   const handleInstall = async () => {
     if (!deferredPrompt) return;
     deferredPrompt.prompt();
-    const { outcome } = await deferredPrompt.userChoice;
-    if (outcome === "accepted") setIsInstalled(true);
+    await deferredPrompt.userChoice;
     setDeferredPrompt(null);
-    setVisible(false);
+    // Keep visible even after install attempt
   };
 
-  // Hide on desktop or if already installed
-  if (isInstalled || !visible) return null;
+  if (!visible) return null;
 
-  // iOS: show guidance
+  // iOS: show guidance (always visible, X closes it until page reload)
   if (os === "ios") {
     return (
       <div className="fixed bottom-4 left-4 right-4 z-50 mx-auto max-w-md rounded-2xl bg-white p-4 shadow-2xl border border-gray-200 animate-in slide-in-from-bottom">
@@ -77,6 +70,7 @@ export default function InstallPrompt() {
           <button
             onClick={() => setVisible(false)}
             className="text-gray-400 hover:text-gray-600"
+            aria-label="Close"
           >
             <X className="h-5 w-5" />
           </button>
@@ -85,7 +79,7 @@ export default function InstallPrompt() {
     );
   }
 
-  // Android / Chrome: modern card
+  // Android / Chrome: modern card – always visible after event fires, X closes it
   return (
     <div className="fixed bottom-4 left-4 right-4 z-50 mx-auto max-w-md rounded-2xl bg-white p-4 shadow-2xl border border-gray-200 animate-in slide-in-from-bottom">
       <div className="flex items-center gap-4">
@@ -116,6 +110,7 @@ export default function InstallPrompt() {
         <button
           onClick={() => setVisible(false)}
           className="absolute -top-2 -right-2 bg-gray-100 rounded-full p-1 text-gray-500 hover:bg-gray-200"
+          aria-label="Close"
         >
           <X className="h-4 w-4" />
         </button>

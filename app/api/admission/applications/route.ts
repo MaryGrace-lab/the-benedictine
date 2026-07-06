@@ -91,28 +91,28 @@ export async function GET(request: NextRequest) {
       ];
     }
 
-    const [applications, total] = await Promise.all([
-      prisma.admissionApplication.findMany({
-        where,
-        skip: (page - 1) * limit,
-        take: limit,
-        orderBy: { createdAt: "desc" },
-        select: {
-          id: true,
-          registrationNumber: true,
-          surname: true,
-          firstName: true,
-          gender: true,
-          applyingClass: true,
-          status: true,
-          email: true,
-          phoneNumber: true,
-          submittedAt: true,
-          createdAt: true,
-        },
-      }),
-      prisma.admissionApplication.count({ where }),
-    ]);
+    // Fetch sequentially to prevent connection pool exhaustion
+    const applications = await prisma.admissionApplication.findMany({
+      where,
+      skip: (page - 1) * limit,
+      take: limit,
+      orderBy: { createdAt: "desc" },
+      select: {
+        id: true,
+        registrationNumber: true,
+        surname: true,
+        firstName: true,
+        gender: true,
+        applyingClass: true,
+        status: true,
+        email: true,
+        phoneNumber: true,
+        submittedAt: true,
+        createdAt: true,
+      },
+    });
+
+    const total = await prisma.admissionApplication.count({ where });
 
     return NextResponse.json({
       applications,

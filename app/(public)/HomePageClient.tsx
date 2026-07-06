@@ -77,10 +77,10 @@ export default function HomePageClient({
               <span className="uppercase tracking-wider mr-2 bg-[#270f01] text-white px-1.5 py-0.5 rounded text-[9px] md:text-[10px]">
                 Notice
               </span>
-              Resumption Date: Third Term begins Monday, April 27th, 2026.
+              Admissions are now open for the 2026/2027 academic year.
             </p>
             <Link
-              href="/news"
+              href="/admission"
               className="hidden sm:flex items-center gap-1 text-[10px] md:text-xs font-black uppercase tracking-wider hover:underline ml-2"
             >
               Details <ArrowRight className="w-3 h-3" aria-hidden="true" />
@@ -318,7 +318,7 @@ export default function HomePageClient({
               </h2>
               <p className="text-muted-foreground max-w-xl mx-auto mb-8">
                 Take the first step towards a transformative educational experience. Applications for
-                2026/2027 are now open.
+                the new academic year are now open.
               </p>
               <div className="flex flex-wrap justify-center gap-4">
                 <Link href="/admission">

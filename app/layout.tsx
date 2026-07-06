@@ -14,7 +14,7 @@ const inter = Inter({
 
 export const metadata: Metadata = {
   title: {
-    default: "The Benedictine Academy — Student Result Portal",
+    default: "The Benedictine Academy — Catholic Education Centre",
     template: "%s — The Benedictine Academy",
   },
   description:
