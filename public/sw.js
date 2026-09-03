@@ -1,5 +1,5 @@
 // public/sw.js
-const CACHE_NAME = 'the-benedictine-academy-v1';
+const CACHE_NAME = 'the-benedictine-academy-v2';  // ✅ bumped version
 
 const ASSETS_TO_CACHE = [
   '/',
