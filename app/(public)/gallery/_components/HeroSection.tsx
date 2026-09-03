@@ -1,3 +1,4 @@
+// app/(public)/gallery/_components/HeroSection.tsx
 import React from 'react';
 import Image from 'next/image';
 

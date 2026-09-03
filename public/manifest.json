@@ -1,22 +1,25 @@
 {
   "name": "The Benedictine Academy",
-  "short_name": "TBA",
-  "description": "Catholic Education Centre – Student Portal, Admission & Results",
+  "short_name": "Benedictine",
+  "description": "Catholic Education Centre – Official student portal for The Benedictine Academy, Benin City.",
   "start_url": "/",
   "scope": "/",
   "display": "standalone",
   "background_color": "#FAF7F2",
-  "theme_color": "#8B5E3C",
+  "theme_color": "#1B3A5C",
+  "orientation": "portrait",
   "icons": [
     {
-      "src": "/android-chrome-192x192.png",
+      "src": "/icons/icon-192x192.png",
       "sizes": "192x192",
-      "type": "image/png"
+      "type": "image/png",
+      "purpose": "any maskable"
     },
     {
-      "src": "/android-chrome-512x512.png",
+      "src": "/icons/icon-512x512.png",
       "sizes": "512x512",
-      "type": "image/png"
+      "type": "image/png",
+      "purpose": "any maskable"
     }
   ]
 }

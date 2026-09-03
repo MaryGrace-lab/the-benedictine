@@ -88,3 +88,40 @@ export const homeTestimonials: HomeTestimonial[] = [
     content: 'Teaching at the Benedictine Academy has been a rewarding experience, witnessing students grow academically, spiritually and morally.',
   },
 ];
+
+
+// ---------- Gallery ----------
+
+export interface GalleryImage {
+  src: string;
+  alt: string;
+  title?: string;
+  description?: string;
+}
+
+export const galleryImages: GalleryImage[] = [
+  {
+    src: '/1.jpg',
+    alt: 'School building exterior',
+    title: 'Our Campus',
+    description: 'The beautiful Benedictine Academy campus',
+  },
+  {
+    src: '/classroom.jpg',
+    alt: 'Students in class',
+    title: 'Classroom Learning',
+    description: 'Students engaged in interactive learning',
+  },
+  {
+    src: '/computer-lab-2.jpg',
+    alt: 'Computer lab',
+    title: 'Modern Facilities',
+    description: 'State-of-the-art computer lab for digital learning',
+  },
+  {
+    src: '/econs-practical-2.jpg',
+    alt: 'Economics practical',
+    title: 'Practical Learning',
+    description: 'Hands-on learning experiences for our students',
+  },
+];

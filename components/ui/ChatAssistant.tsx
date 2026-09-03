@@ -1,3 +1,4 @@
+//components/ui/ChatAssistant.tsx
 "use client";
 
 import { useState, useRef, useEffect } from "react";
@@ -108,10 +109,10 @@ export default function ChatAssistant() {
   return (
     <>
       {/* Floating Button – school branded */}
-      <div className="fixed bottom-6 right-6 z-50">
-        <button
-          onClick={() => setIsOpen(!isOpen)}
-          className="group flex items-center gap-2.5 px-5 py-3.5 bg-[#1B3A5C] text-white rounded-full shadow-xl shadow-[#1B3A5C]/30 hover:bg-[#162e49] transition-all duration-300 border border-[#F59E0B]/30"
+      <div className="fixed bottom-6 right-6 z-30">
+          <button
+            onClick={() => setIsOpen(!isOpen)}
+            className="group flex items-center gap-2.5 px-5 py-3.5 bg-[#1B3A5C] text-white rounded-full shadow-xl shadow-[#1B3A5C]/30 hover:bg-[#162e49] transition-all duration-300 border border-[#F59E0B]/30"
         >
           {isOpen ? (
             <X className="w-5 h-5" />

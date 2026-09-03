@@ -1,6 +1,7 @@
+// app/(public)/gallery/GalleryPageClient.tsx
 "use client";
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Image from 'next/image';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Maximize2, X } from 'lucide-react';
@@ -63,7 +64,6 @@ function GalleryCard({
           onSelect(image.src);
         }
       }}
-
       tabIndex={0}
       role="button"
       aria-label={`View ${image.title}`}
@@ -124,6 +124,17 @@ function Lightbox({
   selectedImage: string | null;
   onClose: () => void;
 }) {
+  // Handle ESC key
+  useEffect(() => {
+    const handleEsc = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onClose();
+    };
+    if (selectedImage) {
+      document.addEventListener('keydown', handleEsc);
+    }
+    return () => document.removeEventListener('keydown', handleEsc);
+  }, [selectedImage, onClose]);
+
   return (
     <AnimatePresence>
       {selectedImage && (
@@ -133,9 +144,6 @@ function Lightbox({
           exit={{ opacity: 0 }}
           className="fixed inset-0 z-[100] bg-black/95 backdrop-blur-sm flex items-center justify-center p-4 md:p-10"
           onClick={onClose}
-          onKeyDown={(e) => {
-            if (e.key === 'Escape') onClose();
-          }}
           tabIndex={0}
         >
           <button
@@ -175,15 +183,44 @@ function Lightbox({
 export default function GalleryPageClient() {
   const [filter, setFilter] = useState('All');
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
+  const [mounted, setMounted] = useState(false);
+
+  // Handle hydration
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   const filteredImages =
     filter === 'All'
       ? galleryImages
       : galleryImages.filter((img) => img.category === filter);
 
+  // Prevent flash during hydration
+  if (!mounted) {
+    return (
+      <main className="min-h-screen bg-white">
+        <div className="py-24 bg-[#270f01]" />
+        <section className="py-16">
+          <div className="container mx-auto px-4">
+            <div className="flex flex-wrap gap-3 mb-12">
+              {categories.map((cat) => (
+                <div key={cat} className="px-6 py-2 rounded-full bg-gray-100 w-20 h-10 animate-pulse" />
+              ))}
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+              {[1, 2, 3, 4, 5, 6, 7, 8].map((i) => (
+                <div key={i} className="aspect-[4/5] rounded-2xl bg-gray-100 animate-pulse" />
+              ))}
+            </div>
+          </div>
+        </section>
+      </main>
+    );
+  }
+
   return (
     <main className="min-h-screen bg-white">
-      {/* Hero – wrap server component in motion for entrance */}
+      {/* Hero */}
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}

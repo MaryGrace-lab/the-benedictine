@@ -43,9 +43,9 @@ export default function Header({ isMobileMenuOpen, setIsMobileMenuOpen }: Header
   return (
     <header className="fixed top-0 inset-x-0 h-16 md:h-20 bg-white/95 backdrop-blur-md border-b border-stone-100 z-50 flex items-center">
       <div className="container mx-auto px-4 md:px-8 flex items-center justify-between">
-        {/* Logo */}
-        <Link href="/" className="flex items-center gap-2 md:gap-3 shrink-0">
-          <div className="w-9 h-9 md:w-12 md:h-12 relative">
+        {/* Logo – now flexible */}
+        <Link href="/" className="flex items-center gap-2 md:gap-3 flex-1 min-w-0">
+          <div className="w-9 h-9 md:w-12 md:h-12 relative flex-shrink-0">
             <Image
               src="/logo.jpg"
               alt="The Benedictine Academy Logo"
@@ -55,11 +55,11 @@ export default function Header({ isMobileMenuOpen, setIsMobileMenuOpen }: Header
               priority
             />
           </div>
-          <div className="flex flex-col">
-            <h1 className="font-bold text-[13px] sm:text-base md:text-xl text-stone-900 leading-tight">
+          <div className="flex flex-col min-w-0">
+            <h1 className="font-bold text-[13px] sm:text-base md:text-xl text-stone-900 leading-tight truncate">
               The Benedictine Academy
             </h1>
-            <span className="text-[9px] md:text-xs text-stone-500 font-bold tracking-widest uppercase hidden xs:block">
+            <span className="text-[9px] md:text-xs text-stone-500 font-bold tracking-widest uppercase hidden sm:block">
               Excellence & Character
             </span>
           </div>
@@ -108,17 +108,17 @@ export default function Header({ isMobileMenuOpen, setIsMobileMenuOpen }: Header
           </div>
         </nav>
 
-        {/* Right side: CTA + Mobile toggle */}
-        <div className="flex items-center gap-2 shrink-0">
+        {/* Right side: CTA + Mobile toggle – now responsive */}
+        <div className="flex items-center gap-1 sm:gap-2 flex-shrink-0">
           <Link
             href="/student-portal/login"
-            className="whitespace-nowrap bg-orange-600 text-white px-4 py-2 md:px-6 md:py-2.5 rounded-full text-[11px] md:text-sm font-bold shadow-md hover:bg-orange-700 active:scale-95 transition-all"
+            className="hidden md:flex whitespace-nowrap bg-orange-600 text-white px-4 py-2 md:px-6 md:py-2.5 rounded-full text-[11px] md:text-sm font-bold shadow-md hover:bg-orange-700 active:scale-95 transition-all"
           >
             Check Result
           </Link>
           <button
             onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-            className="xl:hidden p-2 text-stone-800 hover:bg-stone-100 rounded-xl transition-colors"
+            className="xl:hidden flex items-center justify-center min-w-[44px] min-h-[44px] p-2 text-stone-800 hover:bg-stone-100 rounded-xl transition-colors flex-shrink-0"
             aria-label={isMobileMenuOpen ? "Close menu" : "Open menu"}
           >
             {isMobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}

@@ -2,10 +2,13 @@
 // Root Layout — Server Component
 // ──────────────────────────────────────────────
 
-import type { Metadata } from "next";
+// app/layout.tsx
+import type { Metadata, Viewport } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
 import ServiceWorkerRegistration from "@/components/ServiceWorkerRegistration";
+import PageTransition from "@/components/PageTransition";
+import StructuredData from "@/components/StructuredData";
 
 const inter = Inter({
   subsets: ["latin"],
@@ -15,31 +18,60 @@ const inter = Inter({
 export const metadata: Metadata = {
   title: {
     default: "The Benedictine Academy — Catholic Education Centre",
-    template: "%s — The Benedictine Academy",
+    template: "%s | The Benedictine Academy",
   },
   description:
-    "Official student result management portal for The Benedictine Academy, Benin City. Check academic results, report cards, and exam scores online. Catholic Education Centre — Learning in Wisdom.",
+    "The Benedictine Academy — Catholic Education Centre in Benin City, Edo State. ✓ Check exam results online ✓ Report cards ✓ Admission for next academic session is now open. Learning in Wisdom.",
   keywords: [
+    // School name
     "The Benedictine Academy",
     "Benedictine Academy",
-    "school results",
+    "TBA Benin City",
+    
+    // Location
     "Benin City",
+    "Edo State",
+    "Nigeria",
+    
+    // Education type
     "Catholic school",
+    "Catholic education centre",
+    "Catholic nursery and primary school",
+    "Catholic secondary school",
+    
+    // Services
+    "school results",
     "result checker",
     "student portal",
     "academic results",
-    "Edo State",
-    "education",
+    "report cards",
+    "exam scores",
+    
+    // Admission
+    "school admission",
+    "admission open",
+    "school fees",
+    "academic calendar",
+    
+    // Programs
+    "nursery education",
+    "primary education",
+    "secondary education",
+    "holistic education",
+    
+    // Brand
+    "Learning in Wisdom",
+    "excellence and character",
   ],
   icons: {
     icon: "/favicon.ico",
-    apple: "/logo.jpg",
+    apple: "/apple-touch-icon.png",
   },
-  manifest: "/manifest.json",   // ✅ ADD THIS
-  appleWebApp: {                 // ✅ ADD THIS
+  manifest: "/manifest.json",
+  appleWebApp: {
     capable: true,
     title: "Benedictine",
-    statusBarStyle: "default",
+    statusBarStyle: "black-translucent",
   },
   openGraph: {
     title: "The Benedictine Academy — Student Result Portal",
@@ -50,6 +82,16 @@ export const metadata: Metadata = {
     locale: "en_NG",
     type: "website",
   },
+  twitter: {
+    card: "summary_large_image",
+    title: "The Benedictine Academy — Catholic Education Centre",
+    description:
+      "Official student result management portal for The Benedictine Academy, Benin City.",
+  },
+};
+
+export const viewport: Viewport = {
+  themeColor: "#1B3A5C",
 };
 
 export default function RootLayout({
@@ -60,8 +102,9 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className={`${inter.className} min-h-screen bg-[#FAF7F2] text-[#3D1902] antialiased`}>
+        <StructuredData />
         <ServiceWorkerRegistration />
-        {children}
+        <PageTransition>{children}</PageTransition>
       </body>
     </html>
   );
