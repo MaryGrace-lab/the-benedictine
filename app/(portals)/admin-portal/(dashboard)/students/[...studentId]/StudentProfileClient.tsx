@@ -7,13 +7,14 @@
 
 import React from "react";
 import Link from "next/link";
-import { Mail, Phone, Calendar, Award, TrendingUp, BookOpen, ArrowLeft, GraduationCap } from "lucide-react";
+import { Mail, Phone, Calendar, Award, TrendingUp, BookOpen, ArrowLeft, GraduationCap, User } from "lucide-react";
 
 type Student = {
   id: string;
   studentId: string;
   firstName: string;
   lastName: string;
+  gender: string | null;
   class: string;
   studentType: string | null;
   guardianName: string | null;
@@ -63,6 +64,10 @@ export default function StudentProfileClient({
     return "text-rose-600";
   };
 
+  const genderLabel = student.gender
+    ? student.gender.charAt(0) + student.gender.slice(1).toLowerCase()
+    : "—";
+
   return (
     <div className="space-y-6">
       {/* Breadcrumb */}
@@ -106,6 +111,10 @@ export default function StudentProfileClient({
               <span className="flex items-center gap-1">
                 <GraduationCap size={14} className="flex-shrink-0" /> 
                 {student.studentId}
+              </span>
+              <span className="flex items-center gap-1">
+                <User size={14} className="flex-shrink-0" /> 
+                {genderLabel}
               </span>
               <span className="flex items-center gap-1">
                 <Calendar size={14} className="flex-shrink-0" /> 

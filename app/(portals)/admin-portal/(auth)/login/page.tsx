@@ -26,7 +26,7 @@ export default function AdminLoginPage() {
       return;
     }
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmedEmail)) {
-      toast.error("Please enter a valid email address");
+      toast.error("Please enter a valid Username");
       return;
     }
 
@@ -100,7 +100,7 @@ export default function AdminLoginPage() {
           <form onSubmit={handleLogin} className="space-y-4" noValidate>
             <div>
               <label htmlFor="email" className="block text-sm font-medium text-slate-600 mb-1">
-                Email Address
+                Username
               </label>
               <input
                 id="email"

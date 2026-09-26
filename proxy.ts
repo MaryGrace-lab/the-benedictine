@@ -16,22 +16,24 @@ const redis = Redis.fromEnv();
 
 const authRatelimit = new Ratelimit({
   redis,
-  limiter: Ratelimit.slidingWindow(5, "15 m"), // 5 attempts per 15 minutes
+  limiter: Ratelimit.slidingWindow(
+    process.env.NODE_ENV === "production" ? 5 : 20,
+    "15 m"
+  ),
   analytics: true,
   prefix: "ratelimit:auth",
 });
 
 const publicRatelimit = new Ratelimit({
   redis,
-  limiter: Ratelimit.slidingWindow(10, "1 h"), // 10 submissions per hour
+  limiter: Ratelimit.slidingWindow(10, "1 h"),
   analytics: true,
   prefix: "ratelimit:public",
 });
 
-// ── NEW: dedicated rate limiter for the AI chatbot ──
 const chatRatelimit = new Ratelimit({
   redis,
-  limiter: Ratelimit.slidingWindow(20, "1 m"), // 20 messages per minute per IP
+  limiter: Ratelimit.slidingWindow(20, "1 m"),
   analytics: true,
   prefix: "ratelimit:chat",
 });
@@ -146,7 +148,18 @@ export async function proxy(request: NextRequest) {
       pathname.startsWith("/api/auth/") && 
       request.method === "POST"
     ) {
-      const { success, limit, reset, remaining } = await authRatelimit.limit(ip);
+      let rateLimitResult;
+      try {
+        rateLimitResult = await authRatelimit.limit(ip);
+      } catch (error) {
+        console.error("Auth rate limiter unavailable:", error);
+        return NextResponse.json(
+          { error: "Authentication temporarily unavailable. Please try again later." },
+          { status: 503 }
+        );
+      }
+
+      const { success, limit, reset, remaining } = rateLimitResult;
 
       if (!success) {
         return NextResponse.json(
@@ -168,7 +181,18 @@ export async function proxy(request: NextRequest) {
 
     // ── CHAT ENDPOINT (Public, higher rate limit) ──
     if (pathname === "/api/chat" && request.method === "POST") {
-      const { success, limit, reset, remaining } = await chatRatelimit.limit(ip);
+      let rateLimitResult;
+      try {
+        rateLimitResult = await chatRatelimit.limit(ip);
+      } catch (error) {
+        console.error("Chat rate limiter unavailable:", error);
+        return NextResponse.json(
+          { error: "Chat temporarily unavailable. Please try again later." },
+          { status: 503 }
+        );
+      }
+
+      const { success, limit, reset, remaining } = rateLimitResult;
 
       if (!success) {
         return NextResponse.json(
@@ -193,13 +217,24 @@ export async function proxy(request: NextRequest) {
       "/api/admission/submit",
       "/api/admission/applications",
       "/api/admission/upload",
-      "/api/chat",                      // included for completeness
+      "/api/chat",
     ];
 
     if (publicEndpoints.some((endpoint) => pathname.startsWith(endpoint))) {
       if (request.method === "POST") {
-        const { success, reset } = await publicRatelimit.limit(ip);
-        
+        let rateLimitResult;
+        try {
+          rateLimitResult = await publicRatelimit.limit(ip);
+        } catch (error) {
+          console.error("Public rate limiter unavailable:", error);
+          return NextResponse.json(
+            { error: "Service temporarily unavailable. Please try again later." },
+            { status: 503 }
+          );
+        }
+
+        const { success, reset } = rateLimitResult;
+
         if (!success) {
           return NextResponse.json(
             { error: "Too many submissions. Please try again later." },

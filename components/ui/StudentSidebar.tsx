@@ -12,14 +12,14 @@ import Image from "next/image";
 import { useState, useEffect } from "react";
 import {
   LayoutDashboard, FileText, ChevronLeft, Menu, X,
-  Settings,
+  User,
 } from "lucide-react";
 import LogoutButton from "@/components/ui/LogoutButton";
 
 const links = [
   { href: "/student-portal/dashboard", icon: LayoutDashboard, label: "Dashboard" },
   { href: "/student-portal/results", icon: FileText, label: "My Results" },
-  { href: "/student-portal/settings", icon: Settings, label: "Settings" },
+  { href: "/student-portal/profile", icon: User, label: "Profile" },
 ];
 
 export default function StudentSidebar() {

@@ -1,71 +1,66 @@
 // lib/auth.ts
-// Student Password Generation & Authentication
+// Student Password & PIN Generation & Authentication
 import bcrypt from "bcryptjs";
 import crypto from "crypto";
 
 /**
  * Generates a derived, hashed initial password for a student.
  * Format: UPPERCASE_LAST_NAME + LAST_4_DIGITS_OF_ID + RANDOM_4_CHARS
- *
- * @param lastName  - The student's last name
- * @param studentId - The student's unique login/card ID
- * @returns Object containing hashed password and plaintext version
  */
 export async function generateInitialStudentPassword(
   lastName: string,
   studentId: string
 ): Promise<{ hashed: string; plaintext: string }> {
-  // 1. Clean and uppercase the last name
-  const cleanLastName = lastName
-    .trim()
-    .toUpperCase()
-    .replace(/[^A-Z]/g, "");
-
-  // 2. Extract the last 4 characters of the student ID
-  const cleanId = studentId.trim();
-  const lastFourDigits = cleanId.slice(-4);
-
-  // 3. Add random component for security
+  const cleanLastName = lastName.trim().toUpperCase().replace(/[^A-Z]/g, "");
+  const lastFourDigits = studentId.trim().slice(-4);
   const randomBytes = crypto.randomBytes(4);
   const randomPart = randomBytes.toString("hex").slice(0, 4).toUpperCase();
-
-  // 4. Combine them
   const plaintext = `${cleanLastName}${lastFourDigits}${randomPart}`;
-
-  // 5. Hash with bcryptjs
-  const saltRounds = 10;
-  const hashed = await bcrypt.hash(plaintext, saltRounds);
-
+  const hashed = await bcrypt.hash(plaintext, 10);
   return { hashed, plaintext };
 }
 
 /**
  * Returns the plaintext version of the derived password.
- * Use ONLY for initial display to student/parent.
- * NEVER store plaintext in database.
- * 
- * @param lastName  - The student's last name
- * @param studentId - The student's unique login/card ID
- * @param randomPart - The random portion generated during creation
- * @returns The plaintext temporary password
  */
 export function getPlaintextStudentPassword(
   lastName: string,
   studentId: string,
   randomPart: string
 ): string {
-  const cleanLastName = lastName
-    .trim()
-    .toUpperCase()
-    .replace(/[^A-Z]/g, "");
-
+  const cleanLastName = lastName.trim().toUpperCase().replace(/[^A-Z]/g, "");
   const lastFourDigits = studentId.trim().slice(-4);
-
   return `${cleanLastName}${lastFourDigits}${randomPart}`;
 }
 
 /**
- * Verifies a student's password during login
+ * Generates a random 4–6 digit PIN for a student.
+ */
+export function generateStudentPin(): string {
+  // 6-digit PIN with leading zeros preserved
+  const pin = Math.floor(100000 + Math.random() * 900000).toString();
+  return pin;
+}
+
+/**
+ * Hashes a PIN.
+ */
+export async function hashPin(pin: string): Promise<string> {
+  return bcrypt.hash(pin, 10);
+}
+
+/**
+ * Verifies a PIN against its hash.
+ */
+export async function verifyStudentPin(
+  plainPin: string,
+  hashedPin: string
+): Promise<boolean> {
+  return bcrypt.compare(plainPin, hashedPin);
+}
+
+/**
+ * Verifies a student's password during login.
  */
 export async function verifyStudentPassword(
   plainPassword: string,
@@ -75,15 +70,14 @@ export async function verifyStudentPassword(
 }
 
 /**
- * Hashes a new password (for password change/reset)
+ * Hashes a password.
  */
 export async function hashPassword(plainPassword: string): Promise<string> {
-  const saltRounds = 10;
-  return bcrypt.hash(plainPassword, saltRounds);
+  return bcrypt.hash(plainPassword, 10);
 }
 
 /**
- * Validates password strength
+ * Validates password strength.
  */
 export function validatePasswordStrength(password: string): {
   valid: boolean;

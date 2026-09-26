@@ -24,14 +24,6 @@ export interface HomeAnnouncement {
 export const homeAnnouncements: HomeAnnouncement[] = [
   {
     id: 1,
-    category: 'academic',
-    date: '2026-07-10', // YYYY-MM-DD
-    title: 'School Vacation Notice',
-    content: 'School will vacate on 10th of July 2026.',
-  },
-
-  {
-    id: 2,
     category: 'notice',
     date: '2026-07-10', // YYYY-MM-DD
     title: 'Admission Open',

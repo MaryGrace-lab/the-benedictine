@@ -68,19 +68,14 @@ enum ApplicationStatus {
 // ── Models ──
 
 model User {
-  id                    String                 @id @default(cuid())
-  name                  String
-  email                 String                 @unique
-  password              String
-  role                  Role
-  assignedClass         String? // For TEACHER role only
-  lastLoginAt           DateTime?
-  lastLoginIp           String?
-  loginAttempts         Int                    @default(0)
-  lockedUntil           DateTime?
-  admissionApplications AdmissionApplication[]
-  createdAt             DateTime               @default(now())
-  updatedAt             DateTime               @updatedAt
+  id            String   @id @default(cuid())
+  name          String
+  email         String   @unique
+  password      String
+  role          Role
+  assignedClass String? // For TEACHER role only
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
 
   @@index([email])
 }
@@ -103,12 +98,15 @@ model AcademicSession {
 
 model Student {
   id                    String            @id @default(cuid())
-  studentId             String            @unique
+  schoolId              String?           // School's internal ID (optional)
+  studentId             String            @unique  // This is the "Card ID" (login)
+  pin                   String?           // Hashed PIN for accessing results
   password              String
   firstName             String
   lastName              String
+  gender                String?
   class                 String
-  studentType           StudentType? // SCIENCE, ART, COMMERCIAL — for SSS only
+  studentType           StudentType?
   guardianName          String?
   guardianPhone         String?
   passwordResetRequired Boolean           @default(true)
@@ -234,8 +232,6 @@ model ResultSummary {
   nextTermBegins      String?
   headTeacherComment  String?
   parentName          String?
-  parentSignature     String?
-  date                DateTime?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -295,13 +291,7 @@ model AdmissionApplication {
   recommendationLetter String?
 
   // Payment
-  paymentStatus    String  @default("PENDING")
-  paymentReference String?
-  paymentAmount    Float?
-
-  // Relations
-  userId String?
-  user   User?   @relation(fields: [userId], references: [id])
+  paymentStatus String @default("PENDING")
 
   // Tracking
   submittedAt     DateTime?

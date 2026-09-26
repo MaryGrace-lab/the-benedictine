@@ -1,11 +1,17 @@
 // app/api/results/bulk-upload/route.ts
 // Bulk Upload API — Admin & Teacher
+// Uses sequential writes instead of interactive transactions
+// to work with Supabase PgBouncer (transaction mode).
 
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { z } from "zod";
 import { calculateSubjectResult, calculateResultSummary } from "@/lib/grading";
+import { calculateSocialBehaviourScore } from "@/lib/rating";
 import { getAdminFromSession, getTeacherFromSession } from "@/lib/jwt";
+
+const RatingEnum = z.enum(["EXCELLENT", "GOOD", "AVERAGE", "POOR", "VERY_POOR"]);
+const EvaluationEnum = z.enum(["EXCELLENT", "GOOD", "AVERAGE", "BELOW_AVERAGE", "POOR"]);
 
 const BulkUploadSchema = z.object({
   sessionId: z.string().min(1, "Session is required"),
@@ -23,6 +29,41 @@ const BulkUploadSchema = z.object({
       ).min(1, "At least one subject score is required"),
     })
   ).min(1, "At least one student result is required"),
+
+  socialBehaviour: z.object({
+    obedience: RatingEnum.nullable(),
+    honesty: RatingEnum.nullable(),
+    responsibility: RatingEnum.nullable(),
+    selfControl: RatingEnum.nullable(),
+    leadership: RatingEnum.nullable(),
+    relationshipWithOthers: RatingEnum.nullable(),
+    gamesAndSports: RatingEnum.nullable(),
+    health: RatingEnum.nullable(),
+    neatness: RatingEnum.nullable(),
+    manipulativeSkill: RatingEnum.nullable(),
+  }).optional(),
+
+  attendance: z.object({
+    schoolOpened: z.number().int().min(0).nullable(),
+    schoolPresent: z.number().int().min(0).nullable(),
+    sportOpened: z.number().int().min(0).nullable(),
+    sportPresent: z.number().int().min(0).nullable(),
+    othersOpened: z.number().int().min(0).nullable(),
+    othersPresent: z.number().int().min(0).nullable(),
+    organizedActivitiesOpened: z.number().int().min(0).nullable(),
+    organizedActivitiesPresent: z.number().int().min(0).nullable(),
+    remark: z.string().nullable(),
+  }).optional(),
+
+  noInClass: z.number().int().min(0).nullable().optional(),
+  evaluation: EvaluationEnum.nullable().optional(),
+  classTeacherComment: z.string().nullable().optional(),
+  nextTermFees: z.string().nullable().optional(),
+  outstandingFees: z.string().nullable().optional(),
+  books: z.string().nullable().optional(),
+  nextTermBegins: z.string().nullable().optional(),
+  headTeacherComment: z.string().nullable().optional(),
+  parentName: z.string().nullable().optional(),
 });
 
 export async function POST(req: Request) {
@@ -34,10 +75,7 @@ export async function POST(req: Request) {
       (!adminSession || adminSession.role !== "ADMIN") &&
       (!teacherSession || teacherSession.role !== "TEACHER")
     ) {
-      return NextResponse.json(
-        { error: "Unauthorized" },
-        { status: 401 }
-      );
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
     const body = await req.json();
@@ -45,9 +83,9 @@ export async function POST(req: Request) {
 
     if (!validation.success) {
       return NextResponse.json(
-        { 
-          error: "Validation failed", 
-          details: validation.error.flatten().fieldErrors 
+        {
+          error: "Validation failed",
+          details: validation.error.flatten().fieldErrors,
         },
         { status: 400 }
       );
@@ -67,61 +105,109 @@ export async function POST(req: Request) {
     let failed = 0;
     const errors: string[] = [];
 
-    await prisma.$transaction(async (tx) => {
-      for (const studentResult of results) {
-        try {
-          const student = await tx.student.findUnique({
-            where: { studentId: studentResult.studentId },
-            select: { id: true, class: true },
-          });
+    // Precompute behaviour scores once for the whole batch
+    const behaviourScores = validation.data.socialBehaviour
+      ? calculateSocialBehaviourScore(validation.data.socialBehaviour)
+      : null;
 
-          if (!student || student.class !== className) {
-            failed++;
-            errors.push(`${studentResult.studentId}: Student not found or not in ${className}`);
-            continue;
-          }
+    // Process each student sequentially (no interactive transaction)
+    for (const studentResult of results) {
+      try {
+        const student = await prisma.student.findUnique({
+          where: { studentId: studentResult.studentId },
+          select: { id: true, class: true },
+        });
 
-          const subjectTotals: (number | null)[] = [];
+        if (!student || student.class !== className) {
+          failed++;
+          errors.push(`${studentResult.studentId}: Student not found or not in ${className}`);
+          continue;
+        }
 
-          for (const score of studentResult.scores) {
-            const calculation = calculateSubjectResult(
-              score.firstTest,
-              score.secondTest,
-              score.exam
-            );
+        const subjectTotals: (number | null)[] = [];
 
-            await tx.result.upsert({
-              where: {
-                studentId_subjectId_sessionId: {
-                  studentId: student.id,
-                  subjectId: score.subjectId,
-                  sessionId,
-                },
-              },
-              update: {
-                firstTest: score.firstTest,
-                secondTest: score.secondTest,
-                exam: score.exam,
-                total: calculation.total,
-                grade: calculation.grade,
-              },
-              create: {
+        for (const score of studentResult.scores) {
+          const calculation = calculateSubjectResult(
+            score.firstTest,
+            score.secondTest,
+            score.exam
+          );
+
+          await prisma.result.upsert({
+            where: {
+              studentId_subjectId_sessionId: {
                 studentId: student.id,
                 subjectId: score.subjectId,
                 sessionId,
-                firstTest: score.firstTest,
-                secondTest: score.secondTest,
-                exam: score.exam,
-                total: calculation.total,
-                grade: calculation.grade,
               },
-            });
+            },
+            update: {
+              firstTest: score.firstTest,
+              secondTest: score.secondTest,
+              exam: score.exam,
+              total: calculation.total,
+              grade: calculation.grade,
+            },
+            create: {
+              studentId: student.id,
+              subjectId: score.subjectId,
+              sessionId,
+              firstTest: score.firstTest,
+              secondTest: score.secondTest,
+              exam: score.exam,
+              total: calculation.total,
+              grade: calculation.grade,
+            },
+          });
 
-            subjectTotals.push(calculation.total);
-          }
+          subjectTotals.push(calculation.total);
+        }
 
-          const summary = calculateResultSummary(subjectTotals);
-          await tx.resultSummary.upsert({
+        const summary = calculateResultSummary(subjectTotals);
+        await prisma.resultSummary.upsert({
+          where: {
+            studentId_sessionId: {
+              studentId: student.id,
+              sessionId,
+            },
+          },
+          update: {
+            totalCumulative: summary.totalCumulative,
+            totalScore: summary.totalScore,
+            percentageAvg: summary.percentageAvg,
+            remark: summary.remark,
+            noInClass: validation.data.noInClass ?? null,
+            evaluation: validation.data.evaluation ?? null,
+            classTeacherComment: validation.data.classTeacherComment ?? null,
+            nextTermFees: validation.data.nextTermFees ?? null,
+            outstandingFees: validation.data.outstandingFees ?? null,
+            books: validation.data.books ?? null,
+            nextTermBegins: validation.data.nextTermBegins ?? null,
+            headTeacherComment: validation.data.headTeacherComment ?? null,
+            parentName: validation.data.parentName ?? null,
+          },
+          create: {
+            studentId: student.id,
+            sessionId,
+            totalCumulative: summary.totalCumulative,
+            totalScore: summary.totalScore,
+            percentageAvg: summary.percentageAvg,
+            remark: summary.remark,
+            noInClass: validation.data.noInClass ?? null,
+            evaluation: validation.data.evaluation ?? null,
+            classTeacherComment: validation.data.classTeacherComment ?? null,
+            nextTermFees: validation.data.nextTermFees ?? null,
+            outstandingFees: validation.data.outstandingFees ?? null,
+            books: validation.data.books ?? null,
+            nextTermBegins: validation.data.nextTermBegins ?? null,
+            headTeacherComment: validation.data.headTeacherComment ?? null,
+            parentName: validation.data.parentName ?? null,
+          },
+        });
+
+        // Save social behaviour (same for every student in the batch)
+        if (validation.data.socialBehaviour && behaviourScores) {
+          await prisma.socialBehaviour.upsert({
             where: {
               studentId_sessionId: {
                 studentId: student.id,
@@ -129,34 +215,49 @@ export async function POST(req: Request) {
               },
             },
             update: {
-              totalCumulative: summary.totalCumulative,
-              totalScore: summary.totalScore,
-              percentageAvg: summary.percentageAvg,
-              remark: summary.remark,
+              ...validation.data.socialBehaviour,
+              ...behaviourScores,
             },
             create: {
               studentId: student.id,
               sessionId,
-              totalCumulative: summary.totalCumulative,
-              totalScore: summary.totalScore,
-              percentageAvg: summary.percentageAvg,
-              remark: summary.remark,
+              ...validation.data.socialBehaviour,
+              ...behaviourScores,
             },
           });
-
-          processed++;
-        } catch {
-          failed++;
-          errors.push(`${studentResult.studentId}: Processing error`);
         }
+
+        // Save attendance (same for every student in the batch)
+        if (validation.data.attendance) {
+          await prisma.attendance.upsert({
+            where: {
+              studentId_sessionId: {
+                studentId: student.id,
+                sessionId,
+              },
+            },
+            update: validation.data.attendance,
+            create: {
+              studentId: student.id,
+              sessionId,
+              ...validation.data.attendance,
+            },
+          });
+        }
+
+        processed++;
+      } catch (err) {
+        failed++;
+        errors.push(`${studentResult.studentId}: Processing error`);
+        console.error(`Error processing ${studentResult.studentId}:`, err);
       }
-    });
+    }
 
     return NextResponse.json({
       success: true,
       processed,
       failed,
-      errors: errors.length > 0 ? errors.slice(0, 10) : undefined, // Limit error messages
+      errors: errors.length > 0 ? errors.slice(0, 10) : undefined,
       message: `Processed ${processed} students, ${failed} failed`,
     });
   } catch (error) {

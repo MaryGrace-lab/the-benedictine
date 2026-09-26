@@ -1,24 +1,22 @@
 // ──────────────────────────────────────────────
-// Teacher Student Profile Page — Server Component
-// Shows student details and result history.
+// Student Profile Page — Server Component
+// Fetches student details and result history.
+// Uses a catch-all route to support IDs with slashes.
 // ──────────────────────────────────────────────
 
 import { prisma } from "@/lib/prisma";
-import { getTeacherFromSession } from "@/lib/jwt";
-import { redirect, notFound } from "next/navigation";
-import TeacherStudentProfileClient from "./TeacherStudentProfileClient";
+import { notFound } from "next/navigation";
+import StudentProfileClient from "./StudentProfileClient";
 
 interface Props {
-  params: Promise<{ studentId: string }>;
+  params: Promise<{ studentId: string[] }>;
 }
-export const dynamic = "force-dynamic";
-export default async function TeacherStudentProfilePage({ params }: Props) {
-  const session = await getTeacherFromSession();
-  const { studentId } = await params;
 
-  if (!session || session.role !== "TEACHER") {
-    redirect("/teacher-portal/login");
-  }
+export const dynamic = "force-dynamic";
+
+export default async function StudentProfilePage({ params }: Props) {
+  const { studentId: parts } = await params;
+  const studentId = Array.isArray(parts) ? parts.join("/") : parts;
 
   const student = await prisma.student.findUnique({
     where: { studentId },
@@ -27,6 +25,7 @@ export default async function TeacherStudentProfilePage({ params }: Props) {
       studentId: true,
       firstName: true,
       lastName: true,
+      gender: true,
       class: true,
       studentType: true,
       guardianName: true,
@@ -37,17 +36,6 @@ export default async function TeacherStudentProfilePage({ params }: Props) {
 
   if (!student) notFound();
 
-  // Verify teacher is assigned to this student's class
-  const teacher = await prisma.user.findUnique({
-    where: { id: session.userId },
-    select: { assignedClass: true },
-  });
-
-  if (student.class !== teacher?.assignedClass) {
-    redirect("/teacher-portal/students");
-  }
-
-  // Get result history
   const resultHistory = await prisma.resultSummary.findMany({
     where: { studentId: student.id },
     orderBy: { createdAt: "desc" },
@@ -56,7 +44,8 @@ export default async function TeacherStudentProfilePage({ params }: Props) {
     },
   });
 
-  const sessionIds = resultHistory.map((r: { sessionId: string }) => r.sessionId);
+  const sessionIds: string[] = resultHistory.map((r) => r.sessionId);
+
   const resultCounts = await prisma.result.groupBy({
     by: ["sessionId"],
     where: { studentId: student.id, sessionId: { in: sessionIds } },
@@ -75,21 +64,31 @@ export default async function TeacherStudentProfilePage({ params }: Props) {
     totalScore: r.totalScore,
     percentageAvg: r.percentageAvg,
     grade: r.percentageAvg
-      ? r.percentageAvg >= 90 ? "A" : r.percentageAvg >= 70 ? "B" : r.percentageAvg >= 50 ? "C" : "F"
+      ? r.percentageAvg >= 90
+        ? "A"
+        : r.percentageAvg >= 70
+        ? "B"
+        : r.percentageAvg >= 50
+        ? "C"
+        : "F"
       : null,
     remark: r.remark,
     subjects: countsMap[r.sessionId] || 0,
+    classTeacherComment: r.classTeacherComment,
   }));
 
   const bestPerformance = history.length > 0
     ? Math.max(...history.map((h) => h.percentageAvg || 0))
     : 0;
 
+  const latestPerformance = history.length > 0 ? history[0].percentageAvg : null;
+
   return (
-    <TeacherStudentProfileClient
+    <StudentProfileClient
       student={student}
       history={history}
       bestPerformance={bestPerformance}
+      latestPerformance={latestPerformance}
       totalSessions={history.length}
     />
   );

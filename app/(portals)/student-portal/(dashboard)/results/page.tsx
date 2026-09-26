@@ -4,9 +4,11 @@
 // Displays full report card with session selector.
 // Print-friendly with school branding.
 // Mobile responsive.
+// PIN-gated: requires PIN unlock before viewing.
 // ──────────────────────────────────────────────
 
-import { getStudentFromSession } from "@/lib/jwt";
+import { getStudentFromSession, hasResultsUnlock } from "@/lib/jwt";
+import ConsumeUnlock from "@/components/ConsumeUnlock";
 import { prisma } from "@/lib/prisma";
 import { redirect } from "next/navigation";
 import Link from "next/link";
@@ -15,6 +17,7 @@ import PrintButton from "@/components/ui/PrintButton";
 import SessionSelector from "./SessionSelector";
 import { FileText } from "lucide-react";
 import type { Rating } from "@prisma/client";
+import DownloadButton from "@/components/ui/DownloadButton";
 
 type AvailableSession = {
   id: string;
@@ -37,14 +40,22 @@ export default async function StudentResultsPage({
     redirect("/student-portal/login");
   }
 
+  // ── PIN gate ──
+  const unlocked = await hasResultsUnlock(sessionStudentId);
+  if (!unlocked) {
+    redirect("/student-portal/results/unlock");
+  }
+
   const studentProfile = await prisma.student.findUnique({
     where: { studentId: sessionStudentId },
     select: {
       id: true,
       firstName: true,
       lastName: true,
+      gender: true,     // ← NEW
       class: true,
       studentId: true,
+      studentType: true,
     },
   });
 
@@ -106,7 +117,6 @@ export default async function StudentResultsPage({
     }
   }
 
-  // Fetch results sequentially to prevent connection pool exhaustion
   const results = await prisma.result.findMany({
     where: { studentId: studentProfile.id, sessionId: activeSession.id },
     include: { subject: { select: { name: true } } },
@@ -143,6 +153,7 @@ export default async function StudentResultsPage({
   if (!resultSummary) {
     return (
       <div className="space-y-4">
+        <ConsumeUnlock />
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 no-print">
           <SessionSelector sessions={availableSessions} currentSessionId={activeSession.id} />
           <Link href="/student-portal/dashboard" className="text-sm text-[#8B5E3C] hover:underline">
@@ -157,25 +168,41 @@ export default async function StudentResultsPage({
     );
   }
 
-  // ── Helper: Get rating value or "—" ──
   const getRatingDisplay = (rating: Rating | null): string => {
     if (rating === null) return "—";
     return rating;
   };
 
-  // ── Helper: Get number value or "—" ──
   const getNumberDisplay = (value: number | null): string => {
     if (value === null) return "—";
     return String(value);
   };
 
+  const departmentLabel = studentProfile.studentType
+    ? studentProfile.studentType.charAt(0) +
+      studentProfile.studentType.slice(1).toLowerCase()
+    : "—";
+
+  // ← NEW: gender label
+  const genderLabel = studentProfile.gender
+    ? studentProfile.gender.charAt(0) +
+      studentProfile.gender.slice(1).toLowerCase()
+    : "—";
+
   return (
     <div className="space-y-4">
+      <ConsumeUnlock />
+
       {/* Toolbar — hidden when printing */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 no-print">
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-3 flex-wrap">
           <SessionSelector sessions={availableSessions} currentSessionId={activeSession.id} />
-          <PrintButton />
+          <div className="flex items-center gap-2">
+            <PrintButton />
+            <DownloadButton
+              fileName={`Report_Card_${studentProfile.firstName}_${studentProfile.lastName}_${activeSession.year}_${activeSession.term}`}
+            />
+          </div>
         </div>
         <Link href="/student-portal/dashboard" className="text-sm text-[#8B5E3C] hover:underline">
           ← Back to Dashboard
@@ -203,17 +230,65 @@ export default async function StudentResultsPage({
           </h2>
         </div>
 
-        {/* Student Info */}
-        <div className="grid grid-cols-2 gap-3 mb-6 text-xs sm:text-sm text-slate-700 border-b pb-6">
-          <div><span className="font-semibold text-slate-500">Name:</span> {studentProfile.firstName} {studentProfile.lastName}</div>
-          <div><span className="font-semibold text-slate-500">Class:</span> {studentProfile.class}</div>
-          <div><span className="font-semibold text-slate-500">No. in Class:</span> {resultSummary.noInClass ?? "—"}</div>
-          <div><span className="font-semibold text-slate-500">Evaluation:</span> {resultSummary.evaluation ?? "—"}</div>
+        {/* ── Student Info with Photo/Avatar ── */}
+        <div className="mb-6 pb-6 border-b">
+          <div className="flex flex-col sm:flex-row sm:items-start gap-5">
+            {/* Left: student details */}
+            <div className="flex-1 grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-2 text-xs sm:text-sm text-slate-700">
+              <div>
+                <span className="font-semibold text-slate-500">Name:</span>{" "}
+                {studentProfile.firstName} {studentProfile.lastName}
+              </div>
+              <div>
+                <span className="font-semibold text-slate-500">Class:</span>{" "}
+                {studentProfile.class}
+              </div>
+              <div>
+                <span className="font-semibold text-slate-500">Gender:</span>{" "}
+                {genderLabel}
+              </div>
+              <div>
+                <span className="font-semibold text-slate-500">Department:</span>{" "}
+                {departmentLabel}
+              </div>
+              <div>
+                <span className="font-semibold text-slate-500">Term:</span>{" "}
+                {activeSession.term}
+              </div>
+              <div>
+                <span className="font-semibold text-slate-500">Session:</span>{" "}
+                {activeSession.year}
+              </div>
+              <div>
+                <span className="font-semibold text-slate-500">No. in Class:</span>{" "}
+                {resultSummary.noInClass ?? "—"}
+              </div>
+              <div>
+                <span className="font-semibold text-slate-500">Evaluation:</span>{" "}
+                {resultSummary.evaluation ?? "—"}
+              </div>
+            </div>
+
+            {/* Right: photo or placeholder avatar */}
+            <div className="flex-shrink-0 self-center sm:self-start">
+              <div className="w-24 h-24 sm:w-28 sm:h-28 rounded-xl bg-gradient-to-br from-[#8B5E3C]/15 to-[#8B5E3C]/5 border border-[#8B5E3C]/20 flex items-center justify-center overflow-hidden">
+                <span className="text-2xl sm:text-3xl font-black text-[#8B5E3C]">
+                  {studentProfile.firstName[0]}
+                  {studentProfile.lastName[0]}
+                </span>
+              </div>
+              <p className="text-[9px] text-slate-400 text-center mt-1 uppercase tracking-wider">
+                Photograph
+              </p>
+            </div>
+          </div>
         </div>
 
-        {/* Subject Scores Table */}
+        {/* ── Academic Performance Table ── */}
         <div className="mb-6">
-          <h3 className="font-semibold text-base sm:text-lg mb-3 text-slate-800">Performance in Subjects</h3>
+          <h3 className="font-semibold text-base sm:text-lg mb-3 text-slate-800">
+            Academic Performance Table
+          </h3>
           <div className="overflow-x-auto -mx-4 sm:mx-0 rounded-xl border border-slate-200">
             <table className="w-full text-xs sm:text-sm min-w-[550px]">
               <thead className="bg-slate-50 text-slate-600 border-b border-slate-200">
@@ -367,6 +442,10 @@ export default async function StudentResultsPage({
                 </tbody>
               </table>
             </div>
+            <div className="text-xs sm:text-sm mt-3 p-3 bg-slate-50 rounded-xl text-slate-700">
+              <span className="font-semibold text-slate-500">Attendance Remark:</span>{" "}
+              {attendance.remark || "—"}
+            </div>
           </div>
         )}
 
@@ -380,6 +459,7 @@ export default async function StudentResultsPage({
             <span className="font-semibold text-slate-600">Head Teacher&apos;s Comment:</span>{" "}
             {resultSummary.headTeacherComment || "—"}
           </div>
+
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div className="p-3 bg-slate-50 rounded-xl">
               <span className="font-semibold text-slate-600">Next Term Begins:</span>{" "}
@@ -389,6 +469,22 @@ export default async function StudentResultsPage({
               <span className="font-semibold text-slate-600">Next Term Fees:</span>{" "}
               {resultSummary.nextTermFees || "—"}
             </div>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div className="p-3 bg-slate-50 rounded-xl">
+              <span className="font-semibold text-slate-600">Outstanding Fees:</span>{" "}
+              {resultSummary.outstandingFees || "—"}
+            </div>
+            <div className="p-3 bg-slate-50 rounded-xl">
+              <span className="font-semibold text-slate-600">Books:</span>{" "}
+              {resultSummary.books || "—"}
+            </div>
+          </div>
+
+          <div className="p-3 bg-slate-50 rounded-xl">
+            <span className="font-semibold text-slate-600">Parent/Guardian Name:</span>{" "}
+            {resultSummary.parentName || "—"}
           </div>
         </div>
       </div>

@@ -132,3 +132,40 @@ export async function getPayloadFromToken(token: string): Promise<{ userId: stri
     return null;
   }
 }
+
+// ──────────────────────────────────────────────
+// Results Unlock Session (PIN gate for viewing results)
+// ──────────────────────────────────────────────
+
+export async function setResultsUnlockSession(studentId: string) {
+  const token = await new SignJWT({ userId: studentId, purpose: "results-unlock" })
+    .setProtectedHeader({ alg: "HS256" })
+    .setExpirationTime("30m")
+    .setIssuedAt()
+    .sign(secret);
+  const cookieStore = await cookies();
+  cookieStore.set("results-unlock", token, {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === "production",
+    sameSite: "lax",
+    maxAge: 60 * 30,
+    path: "/",
+  });
+}
+
+export async function hasResultsUnlock(studentId: string): Promise<boolean> {
+  const cookieStore = await cookies();
+  const token = cookieStore.get("results-unlock")?.value;
+  if (!token) return false;
+  try {
+    const { payload } = await jwtVerify(token, secret);
+    return payload.userId === studentId && payload.purpose === "results-unlock";
+  } catch {
+    return false;
+  }
+}
+
+export async function clearResultsUnlockSession() {
+  const cookieStore = await cookies();
+  cookieStore.set("results-unlock", "", { maxAge: 0, path: "/" });
+}

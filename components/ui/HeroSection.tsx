@@ -73,7 +73,7 @@ export default function HeroSection({ stats, shouldReduceMotion }: HeroSectionPr
                 <Button
                   variant="outline"
                   size="lg"
-                  className="text-black hover:bg-[#ffca58b6] hover:text-black transition-all"
+                  className="text-white hover:bg-[#ffca58b6] hover:text-black transition-all"
                 >
                   Learn More
                 </Button>

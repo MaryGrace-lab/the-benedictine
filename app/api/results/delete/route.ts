@@ -1,4 +1,7 @@
 // app/api/results/delete/route.ts
+// Delete Results API — Admin & Teacher
+// Uses sequential deletes instead of interactive transactions.
+
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getAdminFromSession, getTeacherFromSession } from "@/lib/jwt";
@@ -53,21 +56,22 @@ export async function POST(req: Request) {
       );
     }
 
-    // Delete everything in a transaction
-    await prisma.$transaction([
-      prisma.result.deleteMany({
-        where: { studentId: student.id, sessionId },
-      }),
-      prisma.socialBehaviour.deleteMany({
-        where: { studentId: student.id, sessionId },
-      }),
-      prisma.attendance.deleteMany({
-        where: { studentId: student.id, sessionId },
-      }),
-      prisma.resultSummary.deleteMany({
-        where: { studentId: student.id, sessionId },
-      }),
-    ]);
+    // Delete sequentially to avoid PgBouncer transaction issues
+    await prisma.result.deleteMany({
+      where: { studentId: student.id, sessionId },
+    });
+
+    await prisma.socialBehaviour.deleteMany({
+      where: { studentId: student.id, sessionId },
+    });
+
+    await prisma.attendance.deleteMany({
+      where: { studentId: student.id, sessionId },
+    });
+
+    await prisma.resultSummary.deleteMany({
+      where: { studentId: student.id, sessionId },
+    });
 
     return NextResponse.json({
       success: true,

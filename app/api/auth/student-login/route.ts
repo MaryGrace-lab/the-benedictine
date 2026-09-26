@@ -7,33 +7,39 @@ import { setStudentSession } from "@/lib/jwt";
 export async function POST(req: Request) {
   try {
     const body = await req.json();
-    const { studentId, password } = body;
+    const { schoolId, studentId, password } = body;
 
     // Input validation
-    if (!studentId || !password) {
+    if (!schoolId || !studentId || !password) {
       return NextResponse.json(
-        { error: "Card ID and password are required" },
+        { error: "School ID, Card ID and password are required" },
         { status: 400 }
       );
     }
 
-    if (typeof studentId !== "string" || typeof password !== "string") {
+    if (
+      typeof schoolId !== "string" ||
+      typeof studentId !== "string" ||
+      typeof password !== "string"
+    ) {
       return NextResponse.json(
         { error: "Invalid input format" },
         { status: 400 }
       );
     }
 
+    const trimmedSchoolId = schoolId.trim();
     const trimmedStudentId = studentId.trim();
     const trimmedPassword = password.trim();
 
-    if (!trimmedStudentId || !trimmedPassword) {
+    if (!trimmedSchoolId || !trimmedStudentId || !trimmedPassword) {
       return NextResponse.json(
-        { error: "Card ID and password cannot be empty" },
+        { error: "Fields cannot be empty" },
         { status: 400 }
       );
     }
 
+    // Find student by Card ID
     const student = await prisma.student.findUnique({
       where: { studentId: trimmedStudentId },
     });
@@ -41,16 +47,25 @@ export async function POST(req: Request) {
     // Generic error prevents account enumeration
     if (!student) {
       return NextResponse.json(
-        { error: "Invalid card ID or password" },
+        { error: "Invalid credentials" },
         { status: 401 }
       );
     }
 
+    // Verify School ID matches
+    if (!student.schoolId || student.schoolId.trim() !== trimmedSchoolId) {
+      return NextResponse.json(
+        { error: "Invalid credentials" },
+        { status: 401 }
+      );
+    }
+
+    // Verify password
     const isValid = await verifyStudentPassword(trimmedPassword, student.password);
 
     if (!isValid) {
       return NextResponse.json(
-        { error: "Invalid card ID or password" },
+        { error: "Invalid credentials" },
         { status: 401 }
       );
     }
@@ -62,6 +77,7 @@ export async function POST(req: Request) {
       success: true,
       student: {
         studentId: student.studentId,
+        schoolId: student.schoolId,
         name: `${student.firstName} ${student.lastName}`,
         class: student.class,
       },

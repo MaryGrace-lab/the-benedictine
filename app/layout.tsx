@@ -6,13 +6,13 @@
 import type { Metadata, Viewport } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
-import ServiceWorkerRegistration from "@/components/ServiceWorkerRegistration";
 import PageTransition from "@/components/PageTransition";
 import StructuredData from "@/components/StructuredData";
 
 const inter = Inter({
   subsets: ["latin"],
   display: "swap",
+  variable: "--font-inter",
 });
 
 export const metadata: Metadata = {
@@ -21,7 +21,8 @@ export const metadata: Metadata = {
     template: "%s | The Benedictine Academy",
   },
   description:
-    "The Benedictine Academy — Catholic Education Centre in Benin City, Edo State. ✓ Check exam results online ✓ Report cards ✓ Admission for next academic session is now open. Learning in Wisdom.",
+  "The Benedictine Academy",
+    // "The Benedictine Academy — Catholic Education Centre in Benin City, Edo State. ✓ Check exam results online ✓ Report cards ✓ Admission for next academic session is now open. Learning in Wisdom.",
   keywords: [
     // School name
     "The Benedictine Academy",
@@ -103,7 +104,6 @@ export default function RootLayout({
     <html lang="en">
       <body className={`${inter.className} min-h-screen bg-[#FAF7F2] text-[#3D1902] antialiased`}>
         <StructuredData />
-        <ServiceWorkerRegistration />
         <PageTransition>{children}</PageTransition>
       </body>
     </html>

@@ -1,6 +1,7 @@
 // app/api/results/upload/route.ts
 // Result Upload API — Admin & Teacher
-// Full validation with Zod, proper error handling, type‑safe transaction
+// Uses sequential writes instead of interactive transactions
+// to work with Supabase PgBouncer (transaction mode).
 
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
@@ -118,95 +119,53 @@ export async function POST(req: Request) {
       );
     }
 
-    // Process in transaction with explicit typing for accumulator variables
-    const result = await prisma.$transaction(async (tx) => {
-      const savedResults: Awaited<ReturnType<typeof tx.result.upsert>>[] = [];
-      const subjectTotals: (number | null)[] = [];
+    // ── Save subject results sequentially ──
+    const savedResults: Awaited<ReturnType<typeof prisma.result.upsert>>[] = [];
+    const subjectTotals: (number | null)[] = [];
 
-      for (const subjectResult of data.results) {
-        const calculation = calculateSubjectResult(
-          subjectResult.firstTest,
-          subjectResult.secondTest,
-          subjectResult.exam
-        );
+    for (const subjectResult of data.results) {
+      const calculation = calculateSubjectResult(
+        subjectResult.firstTest,
+        subjectResult.secondTest,
+        subjectResult.exam
+      );
 
-        const saved = await tx.result.upsert({
-          where: {
-            studentId_subjectId_sessionId: {
-              studentId: student.id,
-              subjectId: subjectResult.subjectId,
-              sessionId: data.sessionId,
-            },
-          },
-          update: {
-            firstTest: subjectResult.firstTest,
-            secondTest: subjectResult.secondTest,
-            exam: subjectResult.exam,
-            total: calculation.total,
-            grade: calculation.grade,
-          },
-          create: {
+      const saved = await prisma.result.upsert({
+        where: {
+          studentId_subjectId_sessionId: {
             studentId: student.id,
             subjectId: subjectResult.subjectId,
             sessionId: data.sessionId,
-            firstTest: subjectResult.firstTest,
-            secondTest: subjectResult.secondTest,
-            exam: subjectResult.exam,
-            total: calculation.total,
-            grade: calculation.grade,
           },
-        });
+        },
+        update: {
+          firstTest: subjectResult.firstTest,
+          secondTest: subjectResult.secondTest,
+          exam: subjectResult.exam,
+          total: calculation.total,
+          grade: calculation.grade,
+        },
+        create: {
+          studentId: student.id,
+          subjectId: subjectResult.subjectId,
+          sessionId: data.sessionId,
+          firstTest: subjectResult.firstTest,
+          secondTest: subjectResult.secondTest,
+          exam: subjectResult.exam,
+          total: calculation.total,
+          grade: calculation.grade,
+        },
+      });
 
-        savedResults.push(saved);
-        subjectTotals.push(calculation.total);
-      }
+      savedResults.push(saved);
+      subjectTotals.push(calculation.total);
+    }
 
-      // Social behaviour – type as the actual Prisma return type or null
-      let socialBehaviourRecord: Awaited<ReturnType<typeof tx.socialBehaviour.upsert>> | null = null;
-      if (data.socialBehaviour) {
-        const behaviourScores = calculateSocialBehaviourScore(data.socialBehaviour);
-        socialBehaviourRecord = await tx.socialBehaviour.upsert({
-          where: {
-            studentId_sessionId: {
-              studentId: student.id,
-              sessionId: data.sessionId,
-            },
-          },
-          update: {
-            ...data.socialBehaviour,
-            ...behaviourScores,
-          },
-          create: {
-            studentId: student.id,
-            sessionId: data.sessionId,
-            ...data.socialBehaviour,
-            ...behaviourScores,
-          },
-        });
-      }
+    // ── Save social behaviour ──
+    if (data.socialBehaviour) {
+      const behaviourScores = calculateSocialBehaviourScore(data.socialBehaviour);
 
-      // Attendance
-      let attendanceRecord: Awaited<ReturnType<typeof tx.attendance.upsert>> | null = null;
-      if (data.attendance) {
-        attendanceRecord = await tx.attendance.upsert({
-          where: {
-            studentId_sessionId: {
-              studentId: student.id,
-              sessionId: data.sessionId,
-            },
-          },
-          update: data.attendance,
-          create: {
-            studentId: student.id,
-            sessionId: data.sessionId,
-            ...data.attendance,
-          },
-        });
-      }
-
-      // Result summary
-      const summary = calculateResultSummary(subjectTotals);
-      const resultSummaryRecord = await tx.resultSummary.upsert({
+      await prisma.socialBehaviour.upsert({
         where: {
           studentId_sessionId: {
             studentId: student.id,
@@ -214,45 +173,77 @@ export async function POST(req: Request) {
           },
         },
         update: {
-          noInClass: data.noInClass ?? null,
-          evaluation: data.evaluation ?? null,
-          totalCumulative: summary.totalCumulative,
-          totalScore: summary.totalScore,
-          percentageAvg: summary.percentageAvg,
-          remark: summary.remark,
-          classTeacherComment: data.classTeacherComment ?? null,
-          nextTermFees: data.nextTermFees ?? null,
-          outstandingFees: data.outstandingFees ?? null,
-          books: data.books ?? null,
-          nextTermBegins: data.nextTermBegins ?? null,
-          headTeacherComment: data.headTeacherComment ?? null,
-          parentName: data.parentName ?? null,
+          ...data.socialBehaviour,
+          ...behaviourScores,
         },
         create: {
           studentId: student.id,
           sessionId: data.sessionId,
-          noInClass: data.noInClass ?? null,
-          evaluation: data.evaluation ?? null,
-          totalCumulative: summary.totalCumulative,
-          totalScore: summary.totalScore,
-          percentageAvg: summary.percentageAvg,
-          remark: summary.remark,
-          classTeacherComment: data.classTeacherComment ?? null,
-          nextTermFees: data.nextTermFees ?? null,
-          outstandingFees: data.outstandingFees ?? null,
-          books: data.books ?? null,
-          nextTermBegins: data.nextTermBegins ?? null,
-          headTeacherComment: data.headTeacherComment ?? null,
-          parentName: data.parentName ?? null,
+          ...data.socialBehaviour,
+          ...behaviourScores,
         },
       });
+    }
 
-      return {
-        results: savedResults,
-        socialBehaviour: socialBehaviourRecord,
-        attendance: attendanceRecord,
-        resultSummary: resultSummaryRecord,
-      };
+    // ── Save attendance ──
+    if (data.attendance) {
+      await prisma.attendance.upsert({
+        where: {
+          studentId_sessionId: {
+            studentId: student.id,
+            sessionId: data.sessionId,
+          },
+        },
+        update: data.attendance,
+        create: {
+          studentId: student.id,
+          sessionId: data.sessionId,
+          ...data.attendance,
+        },
+      });
+    }
+
+    // ── Save result summary ──
+    const summary = calculateResultSummary(subjectTotals);
+    const resultSummaryRecord = await prisma.resultSummary.upsert({
+      where: {
+        studentId_sessionId: {
+          studentId: student.id,
+          sessionId: data.sessionId,
+        },
+      },
+      update: {
+        noInClass: data.noInClass ?? null,
+        evaluation: data.evaluation ?? null,
+        totalCumulative: summary.totalCumulative,
+        totalScore: summary.totalScore,
+        percentageAvg: summary.percentageAvg,
+        remark: summary.remark,
+        classTeacherComment: data.classTeacherComment ?? null,
+        nextTermFees: data.nextTermFees ?? null,
+        outstandingFees: data.outstandingFees ?? null,
+        books: data.books ?? null,
+        nextTermBegins: data.nextTermBegins ?? null,
+        headTeacherComment: data.headTeacherComment ?? null,
+        parentName: data.parentName ?? null,
+      },
+      create: {
+        studentId: student.id,
+        sessionId: data.sessionId,
+        noInClass: data.noInClass ?? null,
+        evaluation: data.evaluation ?? null,
+        totalCumulative: summary.totalCumulative,
+        totalScore: summary.totalScore,
+        percentageAvg: summary.percentageAvg,
+        remark: summary.remark,
+        classTeacherComment: data.classTeacherComment ?? null,
+        nextTermFees: data.nextTermFees ?? null,
+        outstandingFees: data.outstandingFees ?? null,
+        books: data.books ?? null,
+        nextTermBegins: data.nextTermBegins ?? null,
+        headTeacherComment: data.headTeacherComment ?? null,
+        parentName: data.parentName ?? null,
+      },
     });
 
     return NextResponse.json({
@@ -260,9 +251,9 @@ export async function POST(req: Request) {
       message: "Student results saved successfully",
       student: `${student.firstName} ${student.lastName}`,
       summary: {
-        subjectsProcessed: result.results.length,
-        calculatedAverage: result.resultSummary.percentageAvg,
-        systemRemark: result.resultSummary.remark,
+        subjectsProcessed: savedResults.length,
+        calculatedAverage: resultSummaryRecord.percentageAvg,
+        systemRemark: resultSummaryRecord.remark,
       },
     });
   } catch (error) {

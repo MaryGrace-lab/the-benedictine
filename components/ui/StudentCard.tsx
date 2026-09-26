@@ -1,4 +1,3 @@
-//components/ui/StudentCard.tsx
 "use client";
 
 import React, { useRef } from "react";
@@ -8,7 +7,9 @@ import { useReactToPrint } from "react-to-print";
 type Props = {
   studentName: string;
   studentId: string;
+  schoolId: string | null;
   password: string;
+  pin: string;
   studentClass: string;
   isOpen: boolean;
   onClose: () => void;
@@ -17,7 +18,9 @@ type Props = {
 export default function StudentCard({
   studentName,
   studentId,
+  schoolId,
   password,
+  pin,
   studentClass,
   isOpen,
   onClose,
@@ -28,17 +31,9 @@ export default function StudentCard({
     contentRef: cardRef,
     documentTitle: `Student_Card_${studentId}`,
     pageStyle: `
-      @page {
-        size: A5 landscape;
-        margin: 0;
-      }
+      @page { size: A5 landscape; margin: 0; }
       @media print {
-        body { 
-          margin: 0; 
-          -webkit-print-color-adjust: exact;
-          print-color-adjust: exact;
-          background-color: #FAF7F2;
-        }
+        body { margin: 0; -webkit-print-color-adjust: exact; print-color-adjust: exact; background-color: #FAF7F2; }
       }
     `,
   });
@@ -57,7 +52,7 @@ export default function StudentCard({
         link.href = dataUrl;
         link.click();
       } catch (error) {
-        console.error("Oops, something went wrong with the image download!", error);
+        console.error("Image download failed:", error);
       }
     }
   };
@@ -72,25 +67,22 @@ export default function StudentCard({
             🎓 Student Result Checker Card
           </h2>
           <p className="text-xs text-[#8B5E3C] font-medium mt-1">
-            Format: A5 Landscape — Fold directly in half to form a compact A6 dual-sided card
+            A5 Landscape — Fold in half for a compact A6 dual-sided card
           </p>
         </div>
 
-        {/* Card Canvas Container */}
         <div className="flex justify-center mb-6 overflow-x-auto p-2 bg-slate-50 rounded-xl border border-slate-200/60 shadow-inner">
           <div
             ref={cardRef}
             className="w-[594px] h-[420px] relative flex overflow-hidden bg-[#FAF7F2] select-none flex-shrink-0"
             style={{ boxSizing: "border-box" }}
           >
-            {/* ── FRONT SIDE (Left A6 Panel) ── */}
-            <div className="w-1/2 h-full relative p-5 flex flex-col justify-between box-border border-r border-dashed border-[#8B5E3C]/40 bg-gradient-to-b from-white via-[#FAF7F2]/30 to-white">
-              {/* Background Watermark Accent */}
+            {/* ── FRONT SIDE ── */}
+            <div className="w-1/2 h-full relative p-4 flex flex-col justify-between box-border border-r border-dashed border-[#8B5E3C]/40 bg-gradient-to-b from-white via-[#FAF7F2]/30 to-white">
               <div className="absolute inset-0 flex items-center justify-center pointer-events-none opacity-[0.03]">
                 <Image src="/logo.jpg" alt="" width={240} height={240} className="object-contain" unoptimized />
               </div>
 
-              {/* Header Profile */}
               <div className="relative z-10 flex items-center gap-3">
                 <div className="relative w-12 h-12 rounded-xl overflow-hidden bg-white border border-[#8B5E3C]/20 p-1 flex-shrink-0 shadow-sm">
                   <Image src="/logo.jpg" alt="School Logo" fill className="object-contain p-0.5 rounded-lg" unoptimized />
@@ -104,7 +96,6 @@ export default function StudentCard({
                 </div>
               </div>
 
-              {/* Main Credentials Display */}
               <div className="relative z-10 my-auto space-y-1.5">
                 <div className="bg-white/80 backdrop-blur-sm rounded-lg p-2 border border-[#8B5E3C]/10 shadow-sm flex flex-col">
                   <span className="text-[6px] font-bold text-[#8B5E3C] uppercase tracking-widest mb-0.5">Student Name</span>
@@ -117,35 +108,42 @@ export default function StudentCard({
                     <span className="text-[10px] font-bold text-[#3D1902] truncate">{studentClass}</span>
                   </div>
                   <div className="bg-white/80 backdrop-blur-sm rounded-lg p-2 border border-[#8B5E3C]/10 shadow-sm flex flex-col">
-                    <span className="text-[6px] font-bold text-[#8B5E3C] uppercase tracking-widest mb-0.5">Student Card ID</span>
+                    <span className="text-[6px] font-bold text-[#8B5E3C] uppercase tracking-widest mb-0.5">Card ID</span>
                     <span className="text-[10px] font-bold text-[#3D1902] font-mono tracking-wider truncate">{studentId}</span>
                   </div>
                 </div>
 
-                <div className="bg-gradient-to-r from-[#3D1902] to-[#5C2708] rounded-lg p-2 shadow-md flex items-center justify-between border border-black/20">
-                  <div className="flex flex-col">
-                    <span className="text-[6px] font-bold text-[#FAF7F2]/60 uppercase tracking-widest mb-0.5">Password Key</span>
-                    <span className="text-[12px] font-black text-white font-mono tracking-widest">{password}</span>
+                {schoolId && (
+                  <div className="bg-white/80 backdrop-blur-sm rounded-lg p-2 border border-[#8B5E3C]/10 shadow-sm flex flex-col">
+                    <span className="text-[6px] font-bold text-[#8B5E3C] uppercase tracking-widest mb-0.5">School ID</span>
+                    <span className="text-[10px] font-bold text-[#3D1902] font-mono tracking-wider truncate">{schoolId}</span>
                   </div>
-                  <span className="text-sm opacity-20">🔑</span>
+                )}
+
+                <div className="grid grid-cols-2 gap-1.5">
+                  <div className="bg-gradient-to-r from-[#3D1902] to-[#5C2708] rounded-lg p-2 shadow-md flex flex-col border border-black/20">
+                    <span className="text-[6px] font-bold text-[#FAF7F2]/60 uppercase tracking-widest mb-0.5">Password</span>
+                    <span className="text-[10px] font-black text-white font-mono tracking-wider truncate">{password}</span>
+                  </div>
+                  <div className="bg-gradient-to-r from-[#8B5E3C] to-[#6B3F2C] rounded-lg p-2 shadow-md flex flex-col border border-black/20">
+                    <span className="text-[6px] font-bold text-[#FAF7F2]/80 uppercase tracking-widest mb-0.5">Result PIN</span>
+                    <span className="text-[11px] font-black text-white font-mono tracking-widest truncate">{pin}</span>
+                  </div>
                 </div>
               </div>
 
-              {/* Footer Stamp */}
               <div className="relative z-10 pt-1.5 border-t border-[#8B5E3C]/15 flex items-center justify-between text-[6px] font-medium text-[#8B5E3C]/70">
                 <span className="font-bold tracking-tight">thebenedictineacademyportal.com</span>
                 <span className="text-[5px] text-slate-400">Learning in Wisdom • Est. 2017</span>
               </div>
 
-              {/* Fold Badge Indicator Overlay */}
               <div className="absolute bottom-1 right-2 text-[5px] font-bold text-[#8B5E3C]/30 bg-[#8B5E3C]/5 px-1 py-0.5 rounded uppercase tracking-widest pointer-events-none">
                 Front Side
               </div>
             </div>
 
-            {/* ── BACK SIDE (Right A6 Panel) ── */}
+            {/* ── BACK SIDE ── */}
             <div className="w-1/2 h-full relative p-5 flex flex-col justify-between box-border bg-gradient-to-b from-white via-[#FAF7F2]/10 to-white">
-              {/* Central Instructions Block */}
               <div className="space-y-3">
                 <div className="flex items-center gap-1.5 justify-center bg-[#8B5E3C]/5 py-1 rounded-md border border-[#8B5E3C]/15">
                   <span className="text-[9px]">📋</span>
@@ -157,9 +155,9 @@ export default function StudentCard({
                 <div className="space-y-1.5">
                   {[
                     { num: "1", txt: <>Visit <strong>thebenedictineacademyportal.com</strong></> },
-                    { num: "2", txt: <>Click on <strong>Student Portal</strong> or <strong>Check Result</strong></> },
-                    { num: "3", txt: <>Enter your <strong>Card ID</strong> printed on the front profile.</> },
-                    { num: "4", txt: <>Enter your <strong>Password</strong> accurately.</> },
+                    { num: "2", txt: <>Click on <strong>Student Portal</strong></> },
+                    { num: "3", txt: <>Enter your <strong>Card ID</strong> and <strong>Password</strong>.</> },
+                    { num: "4", txt: <>For results, enter your <strong>Result PIN</strong> when prompted.</> },
                     { num: "5", txt: <>Click <strong>Sign In</strong> to view and print your results.</> },
                   ].map((step) => (
                     <div key={step.num} className="flex gap-2 items-start bg-white/50 p-1.5 rounded border border-slate-100 shadow-2xs">
@@ -172,60 +170,55 @@ export default function StudentCard({
                 </div>
               </div>
 
-              {/* Safety/Notice Block */}
               <div className="bg-amber-50/70 border border-amber-200/60 rounded-lg p-2 space-y-1">
                 <h5 className="text-[7.5px] font-bold text-amber-800 uppercase tracking-wide flex items-center gap-1">
-                  ⚠️ Critical Security Notice
+                  ⚠️ Keep This Card Safe
                 </h5>
                 <p className="text-[6.5px] text-amber-900/80 leading-relaxed">
-                  Treat credentials with care. Never disclose Card ID or Password to third parties. Contact the school's administrative support for assistance.
+                  Do not share your Password or PIN with anyone. If you lose this card, contact the school office for a replacement.
                 </p>
               </div>
 
-              {/* Back Footer Bar */}
               <div className="pt-2 border-t border-slate-100 text-center text-[5.5px] text-slate-400 leading-tight">
                 <p>37, Old Mechanic Road, Off Siluko Road, Egor, Benin City, Edo State, Nigeria</p>
                 <div className="flex justify-center gap-3 mt-1 font-bold text-[#8B5E3C]/50 uppercase tracking-widest">
                   <span>Motto: Wisdom & Virtue</span>
                   <span>•</span>
-                  <span>Secure Token Layer v2.0</span>
+                  <span>Secure Token Layer v3.0</span>
                 </div>
               </div>
 
-              {/* Fold Badge Indicator Overlay */}
               <div className="absolute bottom-1 left-2 text-[5px] font-bold text-[#8B5E3C]/30 bg-[#8B5E3C]/5 px-1 py-0.5 rounded uppercase tracking-widest pointer-events-none">
                 Back Side
               </div>
             </div>
 
-            {/* Fold Centered Text Overlay */}
             <div className="absolute top-0 bottom-0 left-1/2 -translate-x-1/2 flex flex-col items-center justify-between py-2 pointer-events-none z-20">
-              <span className="text-[5px] font-bold text-[#8B5E3C]/40 bg-[#FAF7F2] px-1 border border-dashed border-[#8B5E3C]/30 rounded uppercase tracking-wider">✂️ Fold Line</span>
+              <span className="text-[5px] font-bold text-[#8B5E3C]/40 bg-[#FAF7F2] px-1 border border-dashed border-[#8B5E3C]/30 rounded uppercase tracking-wider">✂️ Fold</span>
               <div className="h-full w-[1px] border-l border-dashed border-[#8B5E3C]/20 my-1" />
-              <span className="text-[5px] font-bold text-[#8B5E3C]/40 bg-[#FAF7F2] px-1 border border-dashed border-[#8B5E3C]/30 rounded uppercase tracking-wider">✂️ Fold Line</span>
+              <span className="text-[5px] font-bold text-[#8B5E3C]/40 bg-[#FAF7F2] px-1 border border-dashed border-[#8B5E3C]/30 rounded uppercase tracking-wider">✂️ Fold</span>
             </div>
           </div>
         </div>
 
-        {/* Action Button Strip */}
         <div className="flex gap-3 mt-2">
           <button
             onClick={() => handlePrint()}
-            className="flex-1 py-2.5 bg-[#8B5E3C] text-white rounded-xl font-bold hover:bg-[#6B3F2C] active:scale-[0.99] transition-all text-sm shadow-md shadow-[#8B5E3C]/10 flex items-center justify-center gap-2"
+            className="flex-1 py-2.5 bg-[#8B5E3C] text-white rounded-xl font-bold hover:bg-[#6B3F2C] active:scale-[0.99] transition-all text-sm shadow-md"
           >
-            🖨️ Print Document (A5)
+            🖨️ Print (A5)
           </button>
           <button
             onClick={handleDownloadJPEG}
-            className="flex-1 py-2.5 bg-blue-600 text-white rounded-xl font-bold hover:bg-blue-700 active:scale-[0.99] transition-all text-sm shadow-md shadow-blue-600/10 flex items-center justify-center gap-2"
+            className="flex-1 py-2.5 bg-blue-600 text-white rounded-xl font-bold hover:bg-blue-700 active:scale-[0.99] transition-all text-sm shadow-md"
           >
-            📥 Download Image Asset
+            📥 Download Image
           </button>
           <button
             onClick={onClose}
             className="w-28 py-2.5 bg-slate-100 text-slate-600 rounded-xl font-semibold hover:bg-slate-200 transition-all text-sm"
           >
-            Dismiss
+            Close
           </button>
         </div>
       </div>

@@ -11,7 +11,7 @@ export default function HeroSection() {
           alt=""
           fill
           className="object-cover"
-          priority
+          loading='eager'
         />
       </div>
       <div className="container mx-auto px-4 relative z-10">

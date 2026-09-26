@@ -13,7 +13,6 @@ import { Toaster } from "react-hot-toast";
 import toast from "react-hot-toast";
 import DeleteConfirmModal from "@/components/ui/DeleteConfirmModal";
 import EditStudentModal from "@/components/ui/EditStudentModal";
-import PasswordRevealModal from "@/components/ui/PasswordRevealModal";
 import { Search, Filter, UserPlus, ArrowLeft, TrendingUp } from "lucide-react";
 
 // ── Types ──
@@ -39,7 +38,6 @@ export default function ViewStudentsClient({ initialStudents }: Props) {
   const [search, setSearch] = useState("");
   const [deleteTarget, setDeleteTarget] = useState<Student | null>(null);
   const [editTarget, setEditTarget] = useState<Student | null>(null);
-  const [passwordTarget, setPasswordTarget] = useState<{ studentId: string; name: string } | null>(null);
   const [students, setStudents] = useState<Student[]>(initialStudents);
 
   // ── Promotion state ──
@@ -149,14 +147,6 @@ export default function ViewStudentsClient({ initialStudents }: Props) {
           student={editTarget}
           onClose={() => setEditTarget(null)}
           onUpdated={handleUpdated}
-        />
-      )}
-      {passwordTarget && (
-        <PasswordRevealModal
-          isOpen={!!passwordTarget}
-          studentId={passwordTarget.studentId}
-          studentName={passwordTarget.name}
-          onClose={() => setPasswordTarget(null)}
         />
       )}
 
@@ -367,19 +357,6 @@ export default function ViewStudentsClient({ initialStudents }: Props) {
                       </td>
                       <td className="p-3">
                         <div className="flex items-center gap-1 justify-center">
-                          <button
-                            onClick={() =>
-                              setPasswordTarget({
-                                studentId: student.studentId,
-                                name: `${student.firstName} ${student.lastName}`,
-                              })
-                            }
-                            className="p-2 bg-amber-50 text-amber-600 rounded-lg hover:bg-amber-100 transition-all"
-                            title="View Password"
-                            aria-label={`View password for ${student.firstName} ${student.lastName}`}
-                          >
-                            🔑
-                          </button>
                           <button
                             onClick={() => setEditTarget(student)}
                             className="p-2 bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-100 transition-all"
