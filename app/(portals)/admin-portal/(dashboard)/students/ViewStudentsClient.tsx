@@ -22,6 +22,7 @@ type Student = {
   firstName: string;
   lastName: string;
   class: string;
+  gender: string | null;
   studentType: string | null;
   guardianName: string | null;
   guardianPhone: string | null;

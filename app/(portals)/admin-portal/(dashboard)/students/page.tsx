@@ -33,6 +33,7 @@ export default async function ViewStudentsPage() {
       studentId: true,
       firstName: true,
       lastName: true,
+      gender: true,
       class: true,
       studentType: true,
       guardianName: true,

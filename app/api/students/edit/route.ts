@@ -58,8 +58,8 @@ export async function PUT(req: Request) {
       gender: gender !== undefined ? gender : existing.gender,
       class: studentClass?.trim() || existing.class,
       studentType: studentType !== undefined ? studentType : existing.studentType,
-      guardianName: guardianName?.trim() ?? existing.guardianName,
-      guardianPhone: guardianPhone?.trim() ?? existing.guardianPhone,
+      guardianName: guardianName !== undefined ? (guardianName ? guardianName.trim() : null) : existing.guardianName,
+      guardianPhone: guardianPhone !== undefined ? (guardianPhone ? guardianPhone.trim() : null) : existing.guardianPhone,
     };
 
     const updated = await prisma.student.update({
