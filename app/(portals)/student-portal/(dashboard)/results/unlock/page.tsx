@@ -45,7 +45,6 @@ export default function UnlockResultsPage() {
 
   return (
     <div className="min-h-[60vh] flex items-center justify-center p-4">
-      <Toaster position="top-center" />
       <div className="bg-white p-8 rounded-2xl shadow-lg max-w-sm w-full text-center border border-[#8B5E3C]/10">
         <div className="w-14 h-14 mx-auto mb-4 rounded-full bg-[#8B5E3C]/10 flex items-center justify-center">
           <Lock className="w-6 h-6 text-[#8B5E3C]" />

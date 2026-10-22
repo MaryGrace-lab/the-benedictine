@@ -8,6 +8,7 @@ import { Inter } from "next/font/google";
 import "./globals.css";
 import PageTransition from "@/components/PageTransition";
 import StructuredData from "@/components/StructuredData";
+import { Toaster } from "react-hot-toast";
 
 const inter = Inter({
   subsets: ["latin"],
@@ -104,6 +105,7 @@ export default function RootLayout({
     <html lang="en">
       <body className={`${inter.className} min-h-screen bg-[#FAF7F2] text-[#3D1902] antialiased`}>
         <StructuredData />
+        <Toaster position="top-center" />
         <PageTransition>{children}</PageTransition>
       </body>
     </html>
