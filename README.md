@@ -108,8 +108,8 @@ SEO and performance should be evaluated on the deployed website using tools such
 1. Clone the repository:
 
    ```bash
-   git clone YOUR_REPOSITORY_URL
-   cd YOUR_REPOSITORY_DIRECTORY
+   git clone https://github.com/MaryGrace-lab/the-benedictine.git
+   cd the-benedictine
    ```
 
 2. Install dependencies:
@@ -118,13 +118,12 @@ SEO and performance should be evaluated on the deployed website using tools such
    npm install
    ```
 
-3. Create a local environment file using the variable names expected by the project:
+3. Environment Configuration:
 
-   ```bash
-   cp .env.example .env
-   ```
+   Configure the environment variables required by the application before running it locally. These may include database connection
+   settings and credentials for external services.
 
-   If the repository does not contain an `.env.example` file, create your local `.env` file based on the application's actual configuration. Do not commit secrets.
+   Keep all secrets and credentials private. Do not commit environment files containing sensitive values to GitHub.
 
 4. Configure the database connection and other required environment variables.
 
