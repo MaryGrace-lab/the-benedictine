@@ -1,71 +1,66 @@
 // lib/auth.ts
-// ──────────────────────────────────────────────
-// Student Password Generation & Authentication
-// ──────────────────────────────────────────────
-import bcrypt from "bcrypt";
+// Student Password & PIN Generation & Authentication
+import bcrypt from "bcryptjs";
+import crypto from "crypto";
 
 /**
  * Generates a derived, hashed initial password for a student.
- * Format: UPPERCASE_LAST_NAME + LAST_4_DIGITS_OF_ID
- *
- * Examples:
- *   lastName="Smith", studentId="BA-2026-5421" → SMITH5421
- *   lastName="Obi-Wan", studentId="STU-0012"   → OBIWAN0012
- *   lastName="De Silva", studentId="9876"      → DESILVA9876
- *
- * @param lastName  - The student's last name
- * @param studentId - The student's unique login/card ID
- * @returns The bcrypt-hashed password string ready for database storage
+ * Format: UPPERCASE_LAST_NAME + LAST_4_DIGITS_OF_ID + RANDOM_4_CHARS
  */
 export async function generateInitialStudentPassword(
   lastName: string,
   studentId: string
-): Promise<string> {
-  // 1. Clean and uppercase the last name (remove spaces, hyphens, apostrophes, etc.)
-  const cleanLastName = lastName
-    .trim()
-    .toUpperCase()
-    .replace(/[^A-Z]/g, ""); // Keeps only letters A-Z
-
-  // 2. Extract the last 4 characters of the student ID
-  const cleanId = studentId.trim();
-  const lastFourDigits = cleanId.slice(-4);
-
-  // 3. Combine them to make the plaintext temporary password
-  const temporaryPlaintextPassword = `${cleanLastName}${lastFourDigits}`;
-
-  // 4. Hash it securely before it ever touches the database
-  const saltRounds = 10;
-  const hashedPassword = await bcrypt.hash(temporaryPlaintextPassword, saltRounds);
-
-  return hashedPassword;
+): Promise<{ hashed: string; plaintext: string }> {
+  const cleanLastName = lastName.trim().toUpperCase().replace(/[^A-Z]/g, "");
+  const lastFourDigits = studentId.trim().slice(-4);
+  const randomBytes = crypto.randomBytes(4);
+  const randomPart = randomBytes.toString("hex").slice(0, 4).toUpperCase();
+  const plaintext = `${cleanLastName}${lastFourDigits}${randomPart}`;
+  const hashed = await bcrypt.hash(plaintext, 10);
+  return { hashed, plaintext };
 }
 
 /**
  * Returns the plaintext version of the derived password.
- * Use this ONLY for displaying to the student/parent on a printed slip.
- * NEVER store this in the database.
- *
- * @param lastName  - The student's last name
- * @param studentId - The student's unique login/card ID
- * @returns The plaintext temporary password (e.g., "SMITH5421")
  */
 export function getPlaintextStudentPassword(
   lastName: string,
-  studentId: string
+  studentId: string,
+  randomPart: string
 ): string {
-  const cleanLastName = lastName
-    .trim()
-    .toUpperCase()
-    .replace(/[^A-Z]/g, "");
-
+  const cleanLastName = lastName.trim().toUpperCase().replace(/[^A-Z]/g, "");
   const lastFourDigits = studentId.trim().slice(-4);
-
-  return `${cleanLastName}${lastFourDigits}`;
+  return `${cleanLastName}${lastFourDigits}${randomPart}`;
 }
 
 /**
- * Verifies a student's password during login
+ * Generates a random 4–6 digit PIN for a student.
+ */
+export function generateStudentPin(): string {
+  // 6-digit PIN with leading zeros preserved
+  const pin = Math.floor(100000 + Math.random() * 900000).toString();
+  return pin;
+}
+
+/**
+ * Hashes a PIN.
+ */
+export async function hashPin(pin: string): Promise<string> {
+  return bcrypt.hash(pin, 10);
+}
+
+/**
+ * Verifies a PIN against its hash.
+ */
+export async function verifyStudentPin(
+  plainPin: string,
+  hashedPin: string
+): Promise<boolean> {
+  return bcrypt.compare(plainPin, hashedPin);
+}
+
+/**
+ * Verifies a student's password during login.
  */
 export async function verifyStudentPassword(
   plainPassword: string,
@@ -75,9 +70,30 @@ export async function verifyStudentPassword(
 }
 
 /**
- * Hashes a new password (for password change/reset)
+ * Hashes a password.
  */
 export async function hashPassword(plainPassword: string): Promise<string> {
-  const saltRounds = 10;
-  return bcrypt.hash(plainPassword, saltRounds);
+  return bcrypt.hash(plainPassword, 10);
+}
+
+/**
+ * Validates password strength.
+ */
+export function validatePasswordStrength(password: string): {
+  valid: boolean;
+  message: string;
+} {
+  if (password.length < 8) {
+    return { valid: false, message: "Password must be at least 8 characters" };
+  }
+  if (!/[A-Z]/.test(password)) {
+    return { valid: false, message: "Password must contain an uppercase letter" };
+  }
+  if (!/[a-z]/.test(password)) {
+    return { valid: false, message: "Password must contain a lowercase letter" };
+  }
+  if (!/[0-9]/.test(password)) {
+    return { valid: false, message: "Password must contain a number" };
+  }
+  return { valid: true, message: "Password is strong" };
 }

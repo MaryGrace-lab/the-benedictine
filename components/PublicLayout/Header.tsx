@@ -3,11 +3,11 @@
 // ──────────────────────────────────────────────
 // Public Header — Client Component
 // Navigation bar with portal login dropdown.
+// CSS hover-based dropdown for reliability.
 // ──────────────────────────────────────────────
-
+//app/(public)/components/PublicLayout/Header.tsx
 import Link from "next/link";
 import Image from "next/image";
-import { useState } from "react";
 import { usePathname } from "next/navigation";
 import {
   ChevronDown, GraduationCap, User, ShieldCheck,
@@ -38,15 +38,14 @@ const portalOptions = [
 ];
 
 export default function Header({ isMobileMenuOpen, setIsMobileMenuOpen }: HeaderProps) {
-  const [isLoginDropdownOpen, setIsLoginDropdownOpen] = useState(false);
   const pathname = usePathname();
 
   return (
     <header className="fixed top-0 inset-x-0 h-16 md:h-20 bg-white/95 backdrop-blur-md border-b border-stone-100 z-50 flex items-center">
       <div className="container mx-auto px-4 md:px-8 flex items-center justify-between">
-        {/* Logo */}
-        <Link href="/" className="flex items-center gap-2 md:gap-3 shrink-0">
-          <div className="w-9 h-9 md:w-12 md:h-12 relative">
+        {/* Logo – now flexible */}
+        <Link href="/" className="flex items-center gap-2 md:gap-3 flex-1 min-w-0">
+          <div className="w-9 h-9 md:w-12 md:h-12 relative flex-shrink-0">
             <Image
               src="/logo.jpg"
               alt="The Benedictine Academy Logo"
@@ -56,11 +55,11 @@ export default function Header({ isMobileMenuOpen, setIsMobileMenuOpen }: Header
               priority
             />
           </div>
-          <div className="flex flex-col">
-            <h1 className="font-bold text-[13px] sm:text-base md:text-xl text-stone-900 leading-tight">
+          <div className="flex flex-col min-w-0">
+            <h1 className="font-bold text-[13px] sm:text-base md:text-xl text-stone-900 leading-tight truncate">
               The Benedictine Academy
             </h1>
-            <span className="text-[9px] md:text-xs text-stone-500 font-bold tracking-widest uppercase hidden xs:block">
+            <span className="text-[9px] md:text-xs text-stone-500 font-bold tracking-widest uppercase hidden sm:block">
               Excellence & Character
             </span>
           </div>
@@ -82,29 +81,18 @@ export default function Header({ isMobileMenuOpen, setIsMobileMenuOpen }: Header
             </Link>
           ))}
 
-          {/* Portal Dropdown */}
-          <div
-            className="relative"
-            onMouseEnter={() => setIsLoginDropdownOpen(true)}
-            onMouseLeave={() => setIsLoginDropdownOpen(false)}
-          >
+          {/* Portal Dropdown — CSS hover for reliability */}
+          <div className="relative group">
             <button
-              className={`flex items-center gap-1 px-3 py-2 text-[11px] font-bold uppercase tracking-wider rounded-lg transition-all ${
-                isLoginDropdownOpen
-                  ? "text-orange-600 bg-stone-50"
-                  : "text-stone-600 hover:text-orange-600"
-              }`}
+              className="flex items-center gap-1 px-3 py-2 text-[11px] font-bold uppercase tracking-wider rounded-lg transition-all text-stone-600 group-hover:text-orange-600 group-hover:bg-stone-50"
             >
               Login Portal
-              <ChevronDown
-                className={`w-3 h-3 transition-transform duration-200 ${
-                  isLoginDropdownOpen ? "rotate-180" : ""
-                }`}
-              />
+              <ChevronDown className="w-3 h-3 transition-transform duration-200 group-hover:rotate-180" />
             </button>
 
-            {isLoginDropdownOpen && (
-              <div className="absolute top-full right-0 w-48 py-2 mt-1 bg-white border border-stone-100 rounded-xl shadow-xl animate-in fade-in slide-in-from-top-2 duration-200">
+            {/* Dropdown — stays visible on hover */}
+            <div className="absolute top-full right-0 pt-2 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50">
+              <div className="w-48 bg-white border border-stone-100 rounded-xl shadow-xl py-2">
                 {portalOptions.map((option) => (
                   <Link
                     key={option.name}
@@ -116,21 +104,21 @@ export default function Header({ isMobileMenuOpen, setIsMobileMenuOpen }: Header
                   </Link>
                 ))}
               </div>
-            )}
+            </div>
           </div>
         </nav>
 
-        {/* Right side: CTA + Mobile toggle */}
-        <div className="flex items-center gap-2 shrink-0">
+        {/* Right side: CTA + Mobile toggle – now responsive */}
+        <div className="flex items-center gap-1 sm:gap-2 flex-shrink-0">
           <Link
             href="/student-portal/login"
-            className="whitespace-nowrap bg-orange-600 text-white px-4 py-2 md:px-6 md:py-2.5 rounded-full text-[11px] md:text-sm font-bold shadow-md hover:bg-orange-700 active:scale-95 transition-all"
+            className="hidden md:flex whitespace-nowrap bg-orange-600 text-white px-4 py-2 md:px-6 md:py-2.5 rounded-full text-[11px] md:text-sm font-bold shadow-md hover:bg-orange-700 active:scale-95 transition-all"
           >
             Check Result
           </Link>
           <button
             onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-            className="xl:hidden p-2 text-stone-800 hover:bg-stone-100 rounded-xl transition-colors"
+            className="xl:hidden flex items-center justify-center min-w-[44px] min-h-[44px] p-2 text-stone-800 hover:bg-stone-100 rounded-xl transition-colors flex-shrink-0"
             aria-label={isMobileMenuOpen ? "Close menu" : "Open menu"}
           >
             {isMobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}

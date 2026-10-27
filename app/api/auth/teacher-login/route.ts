@@ -1,56 +1,63 @@
 // app/api/auth/teacher-login/route.ts
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import * as bcrypt from "bcrypt";
-import { SignJWT } from "jose";
-import { cookies } from "next/headers";
-
-if (!process.env.JWT_SECRET) {
-  throw new Error("CRITICAL FAILURE: JWT_SECRET environment variable is missing.");
-}
-
-const secret = new TextEncoder().encode(process.env.JWT_SECRET);
+import bcrypt from "bcryptjs";
+import { setTeacherSession } from "@/lib/jwt";
 
 export async function POST(req: Request) {
   try {
-    const { email, password } = await req.json();
+    const body = await req.json();
+    const { email, password } = body;
 
+    // Input validation
     if (!email || !password) {
-      return NextResponse.json({ error: "Missing credentials" }, { status: 400 });
+      return NextResponse.json(
+        { error: "Email and password are required" },
+        { status: 400 }
+      );
+    }
+
+    if (typeof email !== "string" || typeof password !== "string") {
+      return NextResponse.json(
+        { error: "Invalid input format" },
+        { status: 400 }
+      );
+    }
+
+    // Trim inputs
+    const trimmedEmail = email.trim().toLowerCase();
+    const trimmedPassword = password.trim();
+
+    if (!trimmedEmail || !trimmedPassword) {
+      return NextResponse.json(
+        { error: "Email and password cannot be empty" },
+        { status: 400 }
+      );
     }
 
     const user = await prisma.user.findUnique({
-      where: { email },
+      where: { email: trimmedEmail },
     });
 
-    // Teacher ONLY
+    // Use generic error message to prevent user enumeration
     if (!user || user.role !== "TEACHER") {
-      return NextResponse.json({ error: "Invalid email or password" }, { status: 401 });
+      return NextResponse.json(
+        { error: "Invalid email or password" },
+        { status: 401 }
+      );
     }
 
-    const isValid = await bcrypt.compare(password, user.password);
+    const isValid = await bcrypt.compare(trimmedPassword, user.password);
 
     if (!isValid) {
-      return NextResponse.json({ error: "Invalid email or password" }, { status: 401 });
+      return NextResponse.json(
+        { error: "Invalid email or password" },
+        { status: 401 }
+      );
     }
 
-    const token = await new SignJWT({
-      userId: user.id,
-      role: user.role,
-      assignedClass: user.assignedClass,
-    })
-      .setProtectedHeader({ alg: "HS256" })
-      .setExpirationTime("24h")
-      .sign(secret);
-
-    const cookieStore = await cookies();
-    cookieStore.set("teacher-token", token, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
-      sameSite: "lax",
-      maxAge: 60 * 60 * 24,
-      path: "/",
-    });
+    // Set session using helper (consistent with admin)
+    await setTeacherSession(user.id, user.assignedClass);
 
     return NextResponse.json({
       success: true,
@@ -62,6 +69,9 @@ export async function POST(req: Request) {
     });
   } catch (error) {
     console.error("Teacher login error:", error);
-    return NextResponse.json({ error: "An internal server error occurred" }, { status: 500 });
+    return NextResponse.json(
+      { error: "An internal server error occurred" },
+      { status: 500 }
+    );
   }
 }

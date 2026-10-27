@@ -8,6 +8,8 @@ export default defineConfig({
     seed: "tsx prisma/seed.ts",
   },
   datasource: {
-    url: env('DIRECT_URL'),
+    // Use DIRECT_URL for migrations (session mode, port 5432)
+    // Falls back to DATABASE_URL if DIRECT_URL not set
+    url: env('DIRECT_URL') || env('DATABASE_URL'),
   },
 })

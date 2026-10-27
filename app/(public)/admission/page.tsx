@@ -1,13 +1,29 @@
-import React from 'react';
-import { Metadata } from 'next';
-import AdmissionPageClient from './AdmissionPageClient';
+//app/(public)/admission/page.tsx
+import type { Metadata } from "next";
+import {
+  AdmissionHero,
+  AdmissionProcess,
+  AdmissionRequirements,
+  FeesInfo,
+  FAQ,
+  ContactAdmission,
+} from "./_components";
 
 export const metadata: Metadata = {
-  title: 'Admission Requirements | The Benedictine Academy',
+  title: "Admissions | The Benedictine Academy",
   description:
-    'Learn about the admission requirements, guidelines, and application process for The Benedictine Academy.',
+    "Apply for admission to The Benedictine Academy. Pre-Nursery, Nursery, Primary, and Secondary school admissions for the 2026/2027 academic session.",
 };
 
 export default function AdmissionPage() {
-  return <AdmissionPageClient />;
+  return (
+    <main>
+      <AdmissionHero />
+      <AdmissionProcess />
+      <AdmissionRequirements />
+      <FeesInfo />
+      <FAQ />
+      <ContactAdmission />
+    </main>
+  );
 }

@@ -15,7 +15,7 @@ export const homeStats: HomeStat[] = [
 // ---------- Announcements ----------
 export interface HomeAnnouncement {
   id: number;
-  category: 'academic' | 'event' | 'general';
+  category: 'academic' | 'event' | 'general' | 'notice';
   date: string;          // YYYY-MM-DD
   title: string;
   content: string;
@@ -24,11 +24,12 @@ export interface HomeAnnouncement {
 export const homeAnnouncements: HomeAnnouncement[] = [
   {
     id: 1,
-    category: 'academic',
-    date: '2026-04-15',
-    title: 'School Resumption',
-    content: 'School will resume on 27th of April 2026.',
+    category: 'notice',
+    date: '2026-07-10', // YYYY-MM-DD
+    title: 'Admission Open',
+    content: 'Applications for the new academic year are now open. Both online and physical applications are accepted.',
   },
+
 ];
 
 // ---------- Highlights ----------
@@ -74,18 +75,45 @@ export interface HomeTestimonial {
 
 export const homeTestimonials: HomeTestimonial[] = [
   {
-    name: 'Mrs. Adebayo',
-    role: 'Parent',
-    content: 'The best decision for my children.',
+    name: 'Miss Umoize Mary',
+    role: 'Teacher',
+    content: 'Teaching at the Benedictine Academy has been a rewarding experience, witnessing students grow academically, spiritually and morally.',
+  },
+];
+
+
+// ---------- Gallery ----------
+
+export interface GalleryImage {
+  src: string;
+  alt: string;
+  title?: string;
+  description?: string;
+}
+
+export const galleryImages: GalleryImage[] = [
+  {
+    src: '/1.jpg',
+    alt: 'School building exterior',
+    title: 'Our Campus',
+    description: 'The beautiful Benedictine Academy campus',
   },
   {
-    name: 'Mr. Okonkwo',
-    role: 'Alumnus',
-    content: 'Benedictine Academy gave me the foundation I needed.',
+    src: '/classroom.jpg',
+    alt: 'Students in class',
+    title: 'Classroom Learning',
+    description: 'Students engaged in interactive learning',
   },
   {
-    name: 'Dr. Eze',
-    role: 'Community Leader',
-    content: 'A beacon of academic and moral excellence.',
+    src: '/computer-lab-2.jpg',
+    alt: 'Computer lab',
+    title: 'Modern Facilities',
+    description: 'State-of-the-art computer lab for digital learning',
+  },
+  {
+    src: '/econs-practical-2.jpg',
+    alt: 'Economics practical',
+    title: 'Practical Learning',
+    description: 'Hands-on learning experiences for our students',
   },
 ];

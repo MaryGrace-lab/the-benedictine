@@ -1,7 +1,4 @@
-// ──────────────────────────────────────────────
-// Prisma Client — Neon Adapter (Prisma v7)
-// ──────────────────────────────────────────────
-
+// lib/prisma.ts
 import { PrismaClient } from "@prisma/client";
 import { PrismaNeon } from "@prisma/adapter-neon";
 
@@ -9,17 +6,20 @@ const globalForPrisma = globalThis as unknown as {
   prisma: PrismaClient | undefined;
 };
 
-// Create adapter with connection string directly
-const adapter = new PrismaNeon({
-  connectionString: process.env.DATABASE_URL!,
-});
+function createPrismaClient(): PrismaClient {
+  const url = process.env.DATABASE_URL!;
 
-export const prisma =
-  globalForPrisma.prisma ??
-  new PrismaClient({
+  // Use the pooler URL with the Neon adapter – already includes
+  // pgBouncer=true and the timeout/limit parameters from .env
+  const adapter = new PrismaNeon({ connectionString: url });
+
+  return new PrismaClient({
     adapter,
-    log: process.env.NODE_ENV === "development" ? ["error", "warn"] : ["error"],
+    log: process.env.NODE_ENV === "production" ? ["error"] : ["error", "warn"],
   });
+}
+
+export const prisma = globalForPrisma.prisma ?? createPrismaClient();
 
 if (process.env.NODE_ENV !== "production") {
   globalForPrisma.prisma = prisma;

@@ -9,7 +9,6 @@
 import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import toast, { Toaster } from "react-hot-toast";
-import LogoutButton from "@/components/ui/LogoutButton";
 
 // ── Types ──
 type Subject = { id: string; name: string };
@@ -359,7 +358,6 @@ export default function TeacherUploadClient({ initialStudents, initialSessions }
       <div className="max-w-6xl mx-auto">
         <div className="flex justify-between items-center mb-6">
           <h1 className="text-2xl font-bold text-[#3D1902]">📝 Upload Student Results</h1>
-          <LogoutButton type="teacher" />
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-6">

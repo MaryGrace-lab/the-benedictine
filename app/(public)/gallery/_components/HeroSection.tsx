@@ -1,3 +1,4 @@
+// app/(public)/gallery/_components/HeroSection.tsx
 import React from 'react';
 import Image from 'next/image';
 
@@ -10,7 +11,7 @@ export default function HeroSection() {
           alt=""
           fill
           className="object-cover"
-          priority
+          loading='eager'
         />
       </div>
       <div className="container mx-auto px-4 relative z-10">

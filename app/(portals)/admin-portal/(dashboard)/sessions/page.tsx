@@ -7,6 +7,7 @@
 import { prisma } from "@/lib/prisma";
 import ManageSessionsClient from "./ManageSessionsClient";
 
+export const dynamic = "force-dynamic";
 export default async function ManageSessionsPage() {
   const sessions = await prisma.academicSession.findMany({
     orderBy: { createdAt: "desc" },

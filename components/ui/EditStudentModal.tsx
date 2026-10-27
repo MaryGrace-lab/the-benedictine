@@ -1,3 +1,4 @@
+//components/ui/EditStudentModal.tsx
 "use client";
 
 import React, { useState, useEffect } from "react";
@@ -8,6 +9,7 @@ type Student = {
   studentId: string;
   firstName: string;
   lastName: string;
+  gender: string | null;
   class: string;
   studentType: string | null;
   guardianName: string | null;
@@ -25,6 +27,7 @@ export default function EditStudentModal({ isOpen, student, onClose, onUpdated }
   const [form, setForm] = useState({
     firstName: "",
     lastName: "",
+    gender: "",
     studentId: "",
     studentClass: "",
     studentType: "",
@@ -43,6 +46,7 @@ export default function EditStudentModal({ isOpen, student, onClose, onUpdated }
       setForm({
         firstName: student.firstName,
         lastName: student.lastName,
+        gender: student.gender || "",
         studentId: student.studentId,
         studentClass: student.class,
         studentType: student.studentType || "",
@@ -90,6 +94,7 @@ export default function EditStudentModal({ isOpen, student, onClose, onUpdated }
           originalStudentId: student.studentId,
           firstName: form.firstName,
           lastName: form.lastName,
+          gender: form.gender || null,
           studentId: form.studentId,
           studentClass: form.studentClass,
           studentType: form.studentType || null,
@@ -116,7 +121,7 @@ export default function EditStudentModal({ isOpen, student, onClose, onUpdated }
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50">
-      <div className="bg-white rounded-2xl shadow-2xl max-w-lg w-full p-6">
+      <div className="bg-white rounded-2xl shadow-2xl max-w-lg w-full p-6 max-h-[90vh] overflow-y-auto">
         <h2 className="text-xl font-bold text-[#3D1902] mb-4">✏️ Edit Student</h2>
 
         <div className="space-y-3">
@@ -144,6 +149,22 @@ export default function EditStudentModal({ isOpen, student, onClose, onUpdated }
                 className="w-full p-2.5 border rounded-lg text-sm" required
               />
             </div>
+          </div>
+
+          {/* Gender */}
+          <div>
+            <label htmlFor="edit-gender" className="block text-xs font-medium text-[#8B5E3C] mb-1">
+              Gender
+            </label>
+            <select
+              id="edit-gender" name="gender"
+              value={form.gender} onChange={handleChange}
+              className="w-full p-2.5 border rounded-lg text-sm bg-white"
+            >
+              <option value="">Select Gender</option>
+              <option value="MALE">Male</option>
+              <option value="FEMALE">Female</option>
+            </select>
           </div>
 
           {/* Card ID + Class Row */}

@@ -1,6 +1,7 @@
 // ──────────────────────────────────────────────
 // Teacher Portal Layout — Server Component
 // Wraps all teacher dashboard pages with sidebar.
+// Mobile responsive with hamburger menu support.
 // ──────────────────────────────────────────────
 
 import type { Metadata } from "next";
@@ -22,8 +23,10 @@ export default function TeacherPortalLayout({
   return (
     <div className="flex min-h-screen bg-[#FAF7F2]">
       <TeacherSidebar />
-      <main className="flex-1 overflow-x-hidden ml-64 transition-all duration-300">
-        {children}
+      <main className="flex-1 w-full lg:ml-64 transition-all duration-300 p-4 sm:p-6 lg:p-8 pt-16 lg:pt-8">
+        <div className="max-w-7xl mx-auto">
+          {children}
+        </div>
       </main>
     </div>
   );

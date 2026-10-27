@@ -7,6 +7,7 @@ import ChangePasswordForm from "@/components/ui/ChangePasswordForm";
 import BackButton from "@/components/ui/BackButton";
 import { Lock, Shield } from "lucide-react";
 
+export const dynamic = "force-dynamic";
 export default function TeacherSettingsPage() {
   return (
     <div className="min-h-screen bg-[#FAF7F2] p-4 md:p-6">

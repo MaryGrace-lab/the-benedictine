@@ -93,7 +93,7 @@ export default function Footer() {
               <ul className="space-y-2 text-[13px]">
                 <li className="flex gap-2">
                   <span className="text-orange-500">📍</span>
-                  <span>37, Old Mechanic Road, Off Siluko Road, Benin City.</span>
+                  <span>37, Old Mechanic Road, Off Siluko Road, Benin City, Edo State, Nigeria.</span>
                 </li>
                 <li className="flex items-center gap-2">
                   <span className="text-orange-500">📞</span>

@@ -1,0 +1,11 @@
+# robots.txt
+User-agent: *
+Allow: /
+Disallow: /admin/
+Disallow: /api/
+
+# Host
+Host: https://thebenedictineacademyportal.com
+
+# Sitemaps
+Sitemap: https://thebenedictineacademyportal.com/sitemap.xml

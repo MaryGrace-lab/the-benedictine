@@ -1,6 +1,7 @@
+// app/(public)/gallery/GalleryPageClient.tsx
 "use client";
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Image from 'next/image';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Maximize2, X } from 'lucide-react';
@@ -50,7 +51,6 @@ function GalleryCard({
 }) {
   return (
     <motion.div
-      layout
       initial={{ opacity: 0, scale: 0.9 }}
       animate={{ opacity: 1, scale: 1 }}
       exit={{ opacity: 0, scale: 0.9 }}
@@ -63,7 +63,6 @@ function GalleryCard({
           onSelect(image.src);
         }
       }}
-
       tabIndex={0}
       role="button"
       aria-label={`View ${image.title}`}
@@ -104,7 +103,6 @@ function GalleryGrid({
 }) {
   return (
     <motion.div
-      layout
       className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6"
     >
       <AnimatePresence mode="popLayout">
@@ -124,6 +122,17 @@ function Lightbox({
   selectedImage: string | null;
   onClose: () => void;
 }) {
+  // Handle ESC key
+  useEffect(() => {
+    const handleEsc = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onClose();
+    };
+    if (selectedImage) {
+      document.addEventListener('keydown', handleEsc);
+    }
+    return () => document.removeEventListener('keydown', handleEsc);
+  }, [selectedImage, onClose]);
+
   return (
     <AnimatePresence>
       {selectedImage && (
@@ -133,9 +142,6 @@ function Lightbox({
           exit={{ opacity: 0 }}
           className="fixed inset-0 z-[100] bg-black/95 backdrop-blur-sm flex items-center justify-center p-4 md:p-10"
           onClick={onClose}
-          onKeyDown={(e) => {
-            if (e.key === 'Escape') onClose();
-          }}
           tabIndex={0}
         >
           <button
@@ -183,7 +189,7 @@ export default function GalleryPageClient() {
 
   return (
     <main className="min-h-screen bg-white">
-      {/* Hero – wrap server component in motion for entrance */}
+      {/* Hero */}
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}

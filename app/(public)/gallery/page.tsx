@@ -1,5 +1,5 @@
-import React from 'react';
-import { Metadata } from 'next';
+// app/(public)/gallery/page.tsx
+import type { Metadata } from 'next';
 import GalleryPageClient from './GalleryPageClient';
 
 export const metadata: Metadata = {

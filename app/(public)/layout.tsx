@@ -4,10 +4,12 @@ import { useState, useEffect } from 'react';
 import Header from '@/components/PublicLayout/Header';
 import MobileMenu from '@/components/PublicLayout/MobileMenu';
 import Footer from '@/components/PublicLayout/Footer';
+import WhatsAppButton from "@/components/ui/WhatsAppButton";
+import ChatAssistant from '@/components/ui/ChatAssistant';
 
 export default function PublicLayout({ children }: { children: React.ReactNode }) {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  
+
   // --- Scroll padding for fixed header ---
   useEffect(() => {
     const setScrollPadding = () => {
@@ -21,19 +23,20 @@ export default function PublicLayout({ children }: { children: React.ReactNode }
 
   // --- Close menu on Escape or large screen ---
   useEffect(() => {
-    const handleEvents = (e: KeyboardEvent | Event) => {
-      if (
-        (e instanceof KeyboardEvent && e.key === 'Escape') ||
-        (e instanceof Event && e.type === 'resize' && window.innerWidth >= 1024)
-      ) {
-        setIsMobileMenuOpen(false);
-      }
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setIsMobileMenuOpen(false);
     };
-    window.addEventListener('keydown', handleEvents as EventListener);
-    window.addEventListener('resize', handleEvents);
+
+    const mediaQuery = window.matchMedia('(min-width: 1024px)');
+    const handleResize = () => {
+      if (mediaQuery.matches) setIsMobileMenuOpen(false);
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    mediaQuery.addEventListener('change', handleResize);
     return () => {
-      window.removeEventListener('keydown', handleEvents as EventListener);
-      window.removeEventListener('resize', handleEvents);
+      window.removeEventListener('keydown', handleKeyDown);
+      mediaQuery.removeEventListener('change', handleResize);
     };
   }, []);
 
@@ -46,7 +49,7 @@ export default function PublicLayout({ children }: { children: React.ReactNode }
   }, [isMobileMenuOpen]);
 
   return (
-    <div className="flex flex-col min-h-screen selection:bg-orange-100 selection:text-orange-900 bg-white font-sans">
+    <div className="flex flex-col min-h-screen selection:bg-orange-100 selection:text-orange-900 bg-white">
       <Header
         isMobileMenuOpen={isMobileMenuOpen}
         setIsMobileMenuOpen={setIsMobileMenuOpen}
@@ -57,6 +60,8 @@ export default function PublicLayout({ children }: { children: React.ReactNode }
       />
       <main className="flex-1 pt-16 md:pt-20">{children}</main>
       <Footer />
+      <WhatsAppButton />
+      <ChatAssistant />
     </div>
   );
 }
