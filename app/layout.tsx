@@ -30,7 +30,7 @@ export const metadata: Metadata = {
     "Benedictine Academy",
     "TBA Benin City",
     
-    // Location
+    // Locations
     "Benin City",
     "Edo State",
     "Nigeria",
